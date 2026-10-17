@@ -76,7 +76,7 @@ export default function VantaBackground({ children }: { children: React.ReactNod
         style={{ opacity: initialized ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}
       />
       {/* Subtle overlay for contrast */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[#1b1a24]/50" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#1b1a24]/30 via-transparent to-[#1b1a24]/60" />
 
       {/* Content wrapper */}
       <div className="relative z-10 w-full min-h-screen">

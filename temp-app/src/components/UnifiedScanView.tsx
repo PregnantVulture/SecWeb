@@ -228,7 +228,7 @@ export default function UnifiedScanView() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 font-sans pb-16">
       {/* Top Scanner Control Bar */}
-      <div className="bg-zinc-900/90 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-zinc-800 space-y-5">
+      <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl shadow-xl border border-zinc-800/60 space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
           <div>
             <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ export default function UnifiedScanView() {
 
       {/* Redesigned Dashboard Report Interface */}
       {activeScan ? (
-        <div className="bg-zinc-900/90 backdrop-blur-md rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden space-y-6">
+        <div className="bg-zinc-900/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/40 overflow-hidden space-y-6">
           {/* Compact Scan Header Bar */}
           <div className="p-6 bg-zinc-950/70 border-b border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">

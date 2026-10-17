@@ -6,7 +6,7 @@ export default function Home() {
     <VantaBackground>
       <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto mb-8 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight drop-shadow-[0_4px_30px_rgba(42,172,53,0.35)] relative">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight drop-shadow-[0_4px_30px_rgba(42,172,53,0.35)] relative animate-fade-in">
             <span className="relative z-10">SECWEB</span>
             <span className="absolute inset-0 blur-xl text-emerald-400/30 -z-10 scale-110 select-none">SECWEB</span>
           </h1>

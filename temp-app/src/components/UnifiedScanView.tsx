@@ -106,7 +106,12 @@ export default function UnifiedScanView() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [activeScan, setActiveScan] = useState<ScanRecord | null>(null);
 
-  // New Dashboard Navigation State
+  const [tabKey, setTabKey] = useState(0);
+
+  const switchTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setTabKey(k => k + 1);
+  };
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'intelligence' | 'remediation'>('overview');
   const [selectedFindingId, setSelectedFindingId] = useState<string>('');
   const [findingSeverityFilter, setFindingSeverityFilter] = useState<string>('all');
@@ -228,7 +233,7 @@ export default function UnifiedScanView() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 font-sans pb-16">
       {/* Top Scanner Control Bar */}
-      <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl shadow-xl border border-zinc-800/60 space-y-5">
+      <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl shadow-xl border border-zinc-800/60 space-y-5 animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
           <div>
             <div className="flex items-center gap-2">
@@ -407,7 +412,7 @@ export default function UnifiedScanView() {
 
       {/* Redesigned Dashboard Report Interface */}
       {activeScan ? (
-        <div className="bg-zinc-900/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/40 overflow-hidden space-y-6">
+        <div className="bg-zinc-900/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/40 overflow-hidden space-y-6 animate-fade-in">
           {/* Compact Scan Header Bar */}
           <div className="p-6 bg-zinc-950/70 border-b border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -456,7 +461,7 @@ export default function UnifiedScanView() {
           {/* Report Navigation Tabs */}
           <div className="px-6 flex border-b border-zinc-800 gap-2 overflow-x-auto">
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => switchTab('overview')}
               className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'overview'
                   ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
@@ -466,7 +471,7 @@ export default function UnifiedScanView() {
               📊 Overview & Status
             </button>
             <button
-              onClick={() => setActiveTab('findings')}
+              onClick={() => switchTab('findings')}
               className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'findings'
                   ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
@@ -476,7 +481,7 @@ export default function UnifiedScanView() {
               🛡️ Security Findings ({activeScan.zapAlerts.length})
             </button>
             <button
-              onClick={() => setActiveTab('intelligence')}
+              onClick={() => switchTab('intelligence')}
               className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'intelligence'
                   ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
@@ -486,7 +491,7 @@ export default function UnifiedScanView() {
               🌐 Website Intelligence ({activeScan.tinyfishIntelligence.discoveredPages.length})
             </button>
             <button
-              onClick={() => setActiveTab('remediation')}
+              onClick={() => switchTab('remediation')}
               className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'remediation'
                   ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
@@ -498,7 +503,7 @@ export default function UnifiedScanView() {
           </div>
 
           {/* Tab Content Area */}
-          <div className="p-6 pt-2">
+          <div key={tabKey} className="p-6 pt-2 animate-fade-in animate-blur-in">
             {/* 1. OVERVIEW TAB */}
             {activeTab === 'overview' && (
               <div className="space-y-6">

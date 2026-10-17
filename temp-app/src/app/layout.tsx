@@ -16,6 +16,9 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "SecWeb - Website Intelligence & Vulnerability Scanner",
   description: "Automated vulnerability assessment, discovery, and site verification dashboard.",
+  other: {
+    "secweb-verify": "PASTE_YOUR_EXACT_GENERATED_TOKEN_HERE",
+  },
 };
 
 export default function RootLayout({

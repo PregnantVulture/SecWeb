@@ -3,22 +3,51 @@
 import React, { useState, useEffect } from 'react';
 import SiteShieldVerification from './SiteShieldVerification';
 
-interface Finding {
+interface ZapAlert {
   id: string;
+  alertId: string;
   name: string;
-  risk: string;
+  risk: 'High' | 'Medium' | 'Low' | 'Informational';
+  confidence: 'High' | 'Medium' | 'Low';
   url: string;
+  param?: string;
   cweId?: string;
   description?: string;
+  evidence?: string;
   solution?: string;
+  remediationLink?: {
+    title: string;
+    url: string;
+  };
+  tool: 'OWASP ZAP';
+  fingerprint: string;
 }
 
-interface DiscoveredPage {
+interface TinyFishPage {
   url: string;
   title: string;
   description: string;
   language: string;
   latencyMs: number;
+  format: string;
+  pageType: 'Public Page' | 'Login / Auth' | 'Admin Portal' | 'API Endpoint' | 'Static Asset';
+  observedFacts: string[];
+  inferredClassifications: string[];
+}
+
+interface RemediationRecommendation {
+  id: string;
+  findingId: string;
+  findingName: string;
+  issueSummary: string;
+  beginnerExplanation: string;
+  practicalNextSteps: string[];
+  remediationLink?: {
+    title: string;
+    url: string;
+  };
+  isTargetSpecific: boolean;
+  priority: 'High' | 'Medium' | 'Low' | 'Informational';
 }
 
 interface ScanRecord {
@@ -26,7 +55,10 @@ interface ScanRecord {
   targetUrl: string;
   normalizedHost: string;
   startTime: string;
-  status: string;
+  endTime?: string;
+  status: 'completed' | 'partial' | 'failed' | 'timed_out';
+  scanType: 'live-unified-scan' | 'demo-illustrative-scan';
+  isIllustrativeDemo: boolean;
   totalFindings: number;
   severityCounts: {
     High: number;
@@ -34,8 +66,18 @@ interface ScanRecord {
     Low: number;
     Informational: number;
   };
-  findings: Finding[];
-  discoveredPages: DiscoveredPage[];
+  zapAlerts: ZapAlert[];
+  tinyfishIntelligence: {
+    discoveredPages: TinyFishPage[];
+    summary: string;
+  };
+  remediationRecommendations: RemediationRecommendation[];
+  coverageAndStatus: {
+    toolAttribution: string[];
+    latencyMs: number;
+    completionStatus: string;
+  };
+  error?: string;
 }
 
 interface ComparisonResult {
@@ -47,9 +89,9 @@ interface ComparisonResult {
     persistentCount: number;
     resolvedCount: number;
   };
-  newFindings: Finding[];
-  persistentFindings: { older: Finding; newer: Finding; severityChanged: boolean }[];
-  resolvedFindings: Finding[];
+  newFindings: ZapAlert[];
+  persistentFindings: { older: ZapAlert; newer: ZapAlert; severityChanged: boolean }[];
+  resolvedFindings: ZapAlert[];
 }
 
 export default function UnifiedScanView() {
@@ -160,7 +202,7 @@ export default function UnifiedScanView() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
           <div>
             <h2 className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
-              Vulnerability Scanner 
+              Unified Security Scanner
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               Coordinate TinyFish intelligence discovery and OWASP ZAP vulnerability analysis in one click.
@@ -243,14 +285,21 @@ export default function UnifiedScanView() {
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-zinc-200 dark:border-zinc-800 gap-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Unified Report • {activeScan.id}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Unified Report • {activeScan.id}
+                </span>
+                {activeScan.isIllustrativeDemo && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 rounded-full">
+                    Illustrative Demo Data
+                  </span>
+                )}
+              </div>
               <h3 className="text-xl font-black text-zinc-900 dark:text-zinc-100 mt-1">
                 {activeScan.targetUrl}
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Scanned on {new Date(activeScan.startTime).toLocaleString()} • Status: <span className="font-semibold text-emerald-600">{activeScan.status}</span>
+                Scanned on {new Date(activeScan.startTime).toLocaleString()} • Status: <span className="font-semibold text-emerald-600 uppercase">{activeScan.status}</span>
               </p>
             </div>
             <div className="flex gap-2">
@@ -265,33 +314,56 @@ export default function UnifiedScanView() {
             </div>
           </div>
 
-          {/* Section A: Confirmed Scanner Findings (OWASP ZAP) */}
+          {/* Section 1: Security Findings — OWASP ZAP */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
               <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                A. Confirmed Scanner Findings (OWASP ZAP)
+                1. Security Findings — OWASP ZAP
               </h4>
             </div>
-            {activeScan.findings.length === 0 ? (
-              <p className="text-sm text-zinc-500 italic p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">No security findings detected.</p>
+            {activeScan.zapAlerts.length === 0 ? (
+              <p className="text-sm text-zinc-500 italic p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">No security alerts reported by OWASP ZAP for this target.</p>
             ) : (
               <div className="space-y-3">
-                {activeScan.findings.map(f => (
-                  <div key={f.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                {activeScan.zapAlerts.map(alert => (
+                  <div key={alert.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{f.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{alert.name}</span>
+                        <span className="text-[10px] font-mono bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-zinc-700 dark:text-zinc-300">{alert.alertId}</span>
+                      </div>
                       <span className={`px-2 py-0.5 text-xs font-bold rounded ${
-                        f.risk === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400'
+                        alert.risk === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400'
                       }`}>
-                        {f.risk} Risk
+                        {alert.risk} Risk ({alert.confidence} Confidence)
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-300">{f.description}</p>
-                    {f.solution && (
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300">{alert.description}</p>
+                    <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono truncate">
+                      <strong>Affected URL:</strong> {alert.url}
+                    </div>
+                    {alert.evidence && (
+                      <div className="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900/80 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">
+                        <strong>Evidence:</strong> {alert.evidence}
+                      </div>
+                    )}
+                    {alert.solution && (
                       <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-                        <strong>Remediation:</strong> {f.solution}
+                        <strong>Remediation:</strong> {alert.solution}
                       </p>
+                    )}
+                    {alert.remediationLink && (
+                      <div className="pt-1">
+                        <a
+                          href={alert.remediationLink.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                        >
+                          🔗 How to fix it ({alert.remediationLink.title})
+                        </a>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -299,29 +371,116 @@ export default function UnifiedScanView() {
             )}
           </div>
 
-          {/* Section B: Website Context & Discovered Pages (TinyFish) */}
+          {/* Section 2: Website Intelligence — TinyFish */}
           <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
               <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                B. Solution and Fixes (TinyFish Intelligence)
+                2. Website Intelligence — TinyFish
               </h4>
             </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{activeScan.tinyfishIntelligence.summary}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeScan.discoveredPages.map((page, idx) => (
+              {activeScan.tinyfishIntelligence.discoveredPages.map((page, idx) => (
                 <div key={idx} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">{page.title}</span>
                     <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 px-2 py-0.5 rounded font-mono">
-                      {page.latencyMs}ms
+                      {page.pageType} • {page.latencyMs}ms
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">{page.description}</p>
-                  <a href={page.url} target="_blank" rel="noreferrer" className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline truncate block">
+                  <div className="space-y-1 text-[11px]">
+                    <div className="text-zinc-600 dark:text-zinc-300">
+                      <strong>Observed Facts:</strong> {page.observedFacts.join(', ')}
+                    </div>
+                    <div className="text-zinc-500 dark:text-zinc-400 italic">
+                      <strong>Classifications:</strong> {page.inferredClassifications.join(', ')}
+                    </div>
+                  </div>
+                  <a href={page.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline truncate block pt-1">
                     {page.url}
                   </a>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Section 3: Fixes & Recommendations */}
+          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
+                3. Fixes & Recommendations (Prioritized Checklist)
+              </h4>
+            </div>
+            {activeScan.remediationRecommendations.length === 0 ? (
+              <p className="text-sm text-zinc-500 italic p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">No remediation recommendations required — target scan reported zero actionable findings.</p>
+            ) : (
+              <div className="space-y-3">
+                {activeScan.remediationRecommendations.map(rec => (
+                  <div key={rec.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{rec.findingName}</span>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                          rec.priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400'
+                        }`}>
+                          {rec.priority} Priority
+                        </span>
+                      </div>
+                      <span className="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-2 py-0.5 rounded font-semibold">
+                        {rec.isTargetSpecific ? 'Target-Specific' : 'Standard Advisory'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300">{rec.beginnerExplanation}</p>
+                    <div className="space-y-1 bg-zinc-100 dark:bg-zinc-900/60 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                      <strong className="text-xs text-zinc-700 dark:text-zinc-200 block mb-1">Beginner-Friendly Next Steps:</strong>
+                      <ul className="list-disc list-inside text-xs text-zinc-600 dark:text-zinc-300 space-y-0.5">
+                        {rec.practicalNextSteps.map((step, sIdx) => (
+                          <li key={sIdx}>{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    {rec.remediationLink && (
+                      <div className="pt-1">
+                        <a
+                          href={rec.remediationLink.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          📖 Read guidance in {rec.remediationLink.title}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Scan Coverage and Status */}
+          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+              <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
+                4. Scan Coverage and Status
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <span className="text-zinc-400 block font-bold mb-1">Tool Attribution</span>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{activeScan.coverageAndStatus.toolAttribution.join(', ')}</span>
+              </div>
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <span className="text-zinc-400 block font-bold mb-1">Measured Latency</span>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200 font-mono">{activeScan.coverageAndStatus.latencyMs} ms total</span>
+              </div>
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <span className="text-zinc-400 block font-bold mb-1">Completion Status</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{activeScan.coverageAndStatus.completionStatus}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -339,6 +498,7 @@ export default function UnifiedScanView() {
                 <tr>
                   <th className="px-4 py-3">Scan ID</th>
                   <th className="px-4 py-3">Target Host</th>
+                  <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Findings</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Action</th>
@@ -349,6 +509,11 @@ export default function UnifiedScanView() {
                   <tr key={scan.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                     <td className="px-4 py-3 font-mono font-medium text-zinc-900 dark:text-zinc-100">{scan.id}</td>
                     <td className="px-4 py-3">{scan.normalizedHost}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${scan.isIllustrativeDemo ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'}`}>
+                        {scan.isIllustrativeDemo ? 'Demo' : 'Live'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">
                       {scan.totalFindings} (H:{scan.severityCounts.High}, M:{scan.severityCounts.Medium})
                     </td>

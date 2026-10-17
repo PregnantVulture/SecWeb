@@ -95,8 +95,9 @@ export async function POST(request: Request) {
       targetUrl?: string;
       olderScanId?: string;
       newerScanId?: string;
+      isDemo?: boolean;
     };
-    const { action, targetUrl, olderScanId, newerScanId } = body;
+    const { action, targetUrl, olderScanId, newerScanId, isDemo } = body;
 
     if (action === 'compare') {
       if (!olderScanId || !newerScanId) {
@@ -179,98 +180,169 @@ export async function POST(request: Request) {
 
     const normalizedHost = normalizeHost(targetUrl);
 
-    // Verify domain ownership
-    const ownershipRecord = ownershipStore?.get(normalizedHost);
-    if (!ownershipRecord || !ownershipRecord.verified || ownershipRecord.expiresAt < Date.now()) {
-      return NextResponse.json({
-        error: `Domain ownership verification required for ${normalizedHost}. Please verify ownership via SiteShield before scanning.`,
-        requiresVerification: true,
-        normalizedHost,
-      }, { status: 403 });
+    // Verify domain ownership unless it's demo mode
+    if (!isDemo) {
+      const ownershipRecord = ownershipStore?.get(normalizedHost);
+      if (!ownershipRecord || !ownershipRecord.verified || ownershipRecord.expiresAt < Date.now()) {
+        return NextResponse.json({
+          error: `Domain ownership verification required for ${normalizedHost}. Please verify ownership via SiteShield before scanning.`,
+          requiresVerification: true,
+          normalizedHost,
+        }, { status: 403 });
+      }
     }
 
     const scanId = 'scan_' + crypto.randomBytes(6).toString('hex');
     const startTime = new Date().toISOString();
 
-    // Orchestrate TinyFish Fetch API for website context discovery
     const discoveredPages: DiscoveredPage[] = [];
-    const apiKey = process.env.TINYFISH_API_KEY;
 
-    if (apiKey) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-        const tinyfishRes = await fetch('https://api.fetch.tinyfish.ai', {
-          method: 'POST',
-          headers: {
-            'X-API-Key': apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ urls: [targetUrl] }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (tinyfishRes.ok) {
-          const tinyfishData = await tinyfishRes.json() as { results?: Array<{ url?: string; final_url?: string; title?: string; description?: string; language?: string; latency_ms?: number; format?: string }> };
-          if (tinyfishData.results && tinyfishData.results.length > 0) {
-            const item = tinyfishData.results[0];
-            discoveredPages.push({
-              url: item.final_url || item.url || targetUrl,
-              title: item.title || 'Discovered Root Page',
-              description: item.description || 'Public website content analyzed via TinyFish intelligence.',
-              language: item.language || 'en',
-              latencyMs: item.latency_ms || 45,
-              format: item.format || 'markdown',
-            });
-          }
+    if (isDemo) {
+      discoveredPages.push(
+        {
+          url: 'https://demositeforsecweb.com/',
+          title: 'Demo E-Commerce Storefront',
+          description: 'Hypothetical online retail platform with integrated customer portal and payment gateway.',
+          language: 'en',
+          latencyMs: 38,
+          format: 'markdown',
+        },
+        {
+          url: 'https://demositeforsecweb.com/api/v1/auth',
+          title: 'Demo Authentication Service',
+          description: 'Handles user login, JWT issuance, and session management.',
+          language: 'en',
+          latencyMs: 42,
+          format: 'json',
+        },
+        {
+          url: 'https://demositeforsecweb.com/admin/dashboard',
+          title: 'Demo Admin Portal (Unprotected)',
+          description: 'Internal administration dashboard exposing system metrics and configuration panels.',
+          language: 'en',
+          latencyMs: 51,
+          format: 'html',
         }
-      } catch {
-        // Fallback or ignore TinyFish network error so ZAP scanner still completes
+      );
+    } else {
+      const apiKey = process.env.TINYFISH_API_KEY;
+      if (apiKey) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+          const tinyfishRes = await fetch('https://api.fetch.tinyfish.ai', {
+            method: 'POST',
+            headers: {
+              'X-API-Key': apiKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ urls: [targetUrl] }),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (tinyfishRes.ok) {
+            const tinyfishData = await tinyfishRes.json() as { results?: Array<{ url?: string; final_url?: string; title?: string; description?: string; language?: string; latency_ms?: number; format?: string }> };
+            if (tinyfishData.results && tinyfishData.results.length > 0) {
+              const item = tinyfishData.results[0];
+              discoveredPages.push({
+                url: item.final_url || item.url || targetUrl,
+                title: item.title || 'Discovered Root Page',
+                description: item.description || 'Public website content analyzed via TinyFish intelligence.',
+                language: item.language || 'en',
+                latencyMs: item.latency_ms || 45,
+                format: item.format || 'markdown',
+              });
+            }
+          }
+        } catch {
+          // Ignore network error
+        }
+      }
+
+      if (discoveredPages.length === 0) {
+        discoveredPages.push({
+          url: targetUrl,
+          title: parsedUrl.hostname,
+          description: 'Primary target endpoint.',
+          language: 'en',
+          latencyMs: 50,
+          format: 'markdown',
+        });
       }
     }
 
-    // If TinyFish didn't return a page, ensure default entry exists
-    if (discoveredPages.length === 0) {
-      discoveredPages.push({
-        url: targetUrl,
-        title: parsedUrl.hostname,
-        description: 'Primary target endpoint.',
-        language: 'en',
-        latencyMs: 50,
-        format: 'markdown',
-      });
+    // Findings: if isDemo, load hypothetical security risks with Google/TinyFish solutions
+    let findings: Finding[] = [];
+    if (isDemo) {
+      findings = [
+        {
+          id: 'df1',
+          alertId: 'DEMO-CWE-79',
+          name: 'Reflected Cross-Site Scripting (XSS) in Search Parameter',
+          risk: 'High',
+          confidence: 'High',
+          url: 'https://demositeforsecweb.com/search?q=<script>alert(1)</script>',
+          cweId: 'CWE-79',
+          description: 'TinyFish intelligence analysis discovered that search query inputs are reflected directly into the HTML response without adequate sanitization or escaping, allowing arbitrary JavaScript execution.',
+          solution: 'Sanitize and contextually encode all user-supplied input before rendering it in HTML responses. Implement a strict Content Security Policy (CSP).',
+          fingerprint: generateFindingFingerprint({ alertId: 'DEMO-CWE-79', name: 'Reflected Cross-Site Scripting (XSS) in Search Parameter', url: 'https://demositeforsecweb.com/search', cweId: 'CWE-79' })
+        },
+        {
+          id: 'df2',
+          alertId: 'DEMO-CWE-89',
+          name: 'SQL Injection in User Authentication Endpoint',
+          risk: 'High',
+          confidence: 'High',
+          url: 'https://demositeforsecweb.com/api/v1/auth',
+          cweId: 'CWE-89',
+          description: 'Database query constructed dynamically using unescaped user parameters in the login module, permitting authentication bypass and data extraction.',
+          solution: 'Use parameterized queries, prepared statements, or ORM frameworks (e.g., Prisma, TypeORM) to prevent SQL injection vulnerabilities.',
+          fingerprint: generateFindingFingerprint({ alertId: 'DEMO-CWE-89', name: 'SQL Injection in User Authentication Endpoint', url: 'https://demositeforsecweb.com/api/v1/auth', cweId: 'CWE-89' })
+        },
+        {
+          id: 'df3',
+          alertId: 'DEMO-CWE-693',
+          name: 'Missing Secure & HttpOnly Flags on Session Cookies',
+          risk: 'Medium',
+          confidence: 'High',
+          url: 'https://demositeforsecweb.com/',
+          cweId: 'CWE-693',
+          description: 'Session cookies transmitted over HTTPS lack the HttpOnly and Secure flags, making them vulnerable to theft via cross-site scripting (XSS) and network sniffing.',
+          solution: 'Set the HttpOnly, Secure, and SameSite=Strict flags on all authentication cookies.',
+          fingerprint: generateFindingFingerprint({ alertId: 'DEMO-CWE-693', name: 'Missing Secure & HttpOnly Flags on Session Cookies', url: 'https://demositeforsecweb.com/', cweId: 'CWE-693' })
+        }
+      ];
+    } else {
+      findings = [
+        {
+          id: 'f1',
+          alertId: '10020-1',
+          name: 'X-Frame-Options Header Not Set',
+          risk: 'Medium',
+          confidence: 'Medium',
+          url: targetUrl,
+          cweId: 'CWE-693',
+          description: 'The response does not include X-Frame-Options indicating that the site could be framed.',
+          solution: 'Add the X-Frame-Options header to all outgoing responses.',
+          fingerprint: generateFindingFingerprint({ alertId: '10020-1', name: 'X-Frame-Options Header Not Set', url: targetUrl, cweId: 'CWE-693' })
+        },
+        {
+          id: 'f2',
+          alertId: '10038-1',
+          name: 'Content Security Policy (CSP) Not Set',
+          risk: 'High',
+          confidence: 'High',
+          url: targetUrl,
+          cweId: 'CWE-693',
+          description: 'Content Security Policy (CSP) header is not configured on the target web application.',
+          solution: 'Configure a robust Content Security Policy header.',
+          fingerprint: generateFindingFingerprint({ alertId: '10038-1', name: 'Content Security Policy (CSP) Not Set', url: targetUrl, cweId: 'CWE-693' })
+        }
+      ];
     }
-
-    // OWASP ZAP simulated scanner findings aligned with discovered context
-    const findings: Finding[] = [
-      {
-        id: 'f1',
-        alertId: '10020-1',
-        name: 'X-Frame-Options Header Not Set',
-        risk: 'Medium',
-        confidence: 'Medium',
-        url: targetUrl,
-        cweId: 'CWE-693',
-        description: 'The response does not include X-Frame-Options indicating that the site could be framed.',
-        solution: 'Add the X-Frame-Options header to all outgoing responses.',
-        fingerprint: generateFindingFingerprint({ alertId: '10020-1', name: 'X-Frame-Options Header Not Set', url: targetUrl, cweId: 'CWE-693' })
-      },
-      {
-        id: 'f2',
-        alertId: '10038-1',
-        name: 'Content Security Policy (CSP) Not Set',
-        risk: 'High',
-        confidence: 'High',
-        url: targetUrl,
-        cweId: 'CWE-693',
-        description: 'Content Security Policy (CSP) header is not configured on the target web application.',
-        solution: 'Configure a robust Content Security Policy header.',
-        fingerprint: generateFindingFingerprint({ alertId: '10038-1', name: 'Content Security Policy (CSP) Not Set', url: targetUrl, cweId: 'CWE-693' })
-      }
-    ];
 
     const newScan: ScanRecord = {
       id: scanId,
@@ -278,7 +350,7 @@ export async function POST(request: Request) {
       normalizedHost,
       startTime,
       status: 'completed',
-      scanType: 'unified-tinyfish-zap-scan',
+      scanType: isDemo ? 'demo-intelligence-scan' : 'unified-tinyfish-zap-scan',
       totalFindings: findings.length,
       severityCounts: {
         High: findings.filter(f => f.risk === 'High').length,

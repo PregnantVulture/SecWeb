@@ -56,6 +56,7 @@ export default function UnifiedScanView() {
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [targetUrl, setTargetUrl] = useState('');
+  const [isDemoActive, setIsDemoActive] = useState(false);
   const [olderId, setOlderId] = useState('');
   const [newerId, setNewerId] = useState('');
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
@@ -94,7 +95,7 @@ export default function UnifiedScanView() {
       const res = await fetch('/api/scans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUrl }),
+        body: JSON.stringify({ targetUrl, isDemo: isDemoActive }),
       });
       const data = await res.json() as { error?: string; requiresVerification?: boolean; scan?: ScanRecord };
       if (!res.ok) {
@@ -107,7 +108,6 @@ export default function UnifiedScanView() {
       if (data.scan) {
         setActiveScan(data.scan);
       }
-      setTargetUrl('');
       setShowVerificationModal(false);
       await fetchScans();
     } catch (err: unknown) {
@@ -116,6 +116,11 @@ export default function UnifiedScanView() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoClick = () => {
+    setTargetUrl('https://demositeforsecweb.com');
+    setIsDemoActive(true);
   };
 
   const handleCompare = async (e: React.FormEvent) => {
@@ -161,12 +166,22 @@ export default function UnifiedScanView() {
               Coordinate TinyFish intelligence discovery and OWASP ZAP vulnerability analysis in one click.
             </p>
           </div>
-          <button
-            onClick={() => setShowVerificationModal(!showVerificationModal)}
-            className="self-start px-4 py-2 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
-          >
-            {showVerificationModal ? 'Hide SiteShield Verification' : '🛡️ SiteShield Domain Verification'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDemoClick}
+              className="px-4 py-2 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
+            >
+              🚀 Demo Result (demositeforsecweb.com)
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowVerificationModal(!showVerificationModal)}
+              className="px-4 py-2 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
+            >
+              {showVerificationModal ? 'Hide SiteShield' : '🛡️ SiteShield Domain Verification'}
+            </button>
+          </div>
         </div>
 
         {showVerificationModal && (
@@ -185,9 +200,14 @@ export default function UnifiedScanView() {
         {/* One-Click Scan Form */}
         <form onSubmit={handleScanWebsite} className="flex flex-col sm:flex-row gap-3">
           <input
-            type="url"
+            type="text"
             value={targetUrl}
-            onChange={(e) => setTargetUrl(e.target.value)}
+            onChange={(e) => {
+              setTargetUrl(e.target.value);
+              if (isDemoActive && e.target.value !== 'https://demositeforsecweb.com') {
+                setIsDemoActive(false);
+              }
+            }}
             placeholder="https://anshwadhwaold.vercel.app"
             required
             className="flex-1 px-4 py-3 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -195,7 +215,11 @@ export default function UnifiedScanView() {
           <button
             type="submit"
             disabled={loading}
-            className="px-8 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-lg shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            className={`px-8 py-3 text-sm font-semibold text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 ${
+              isDemoActive
+                ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+            }`}
           >
             {loading ? (
               <>
@@ -205,6 +229,8 @@ export default function UnifiedScanView() {
                 </svg>
                 Orchestrating Scan...
               </>
+            ) : isDemoActive ? (
+              'Run Demo Scan'
             ) : (
               'Scan Website'
             )}

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "SecWeb - Website Intelligence & Vulnerability Scanner",
   description: "Automated vulnerability assessment, discovery, and site verification dashboard.",
   other: {
-    "secweb-verify": "PASTE_YOUR_EXACT_GENERATED_TOKEN_HERE",
+    "secweb-verify": "secweb_verify_8c3224eca56b1d4e71a514a624ac374e",
   },
 };
 

@@ -169,7 +169,7 @@ export default function ScanHistoryAndCompare() {
           type="url"
           value={targetUrl}
           onChange={(e) => setTargetUrl(e.target.value)}
-          placeholder="https://anshwadhwaold.vercel.app"
+          placeholder="httpls://example.com"
           required
           className="flex-1 px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />

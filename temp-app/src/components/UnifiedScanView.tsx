@@ -160,7 +160,7 @@ export default function UnifiedScanView() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
           <div>
             <h2 className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
-              Unified Security Scanner
+              Vulnerability Scanner 
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               Coordinate TinyFish intelligence discovery and OWASP ZAP vulnerability analysis in one click.
@@ -304,7 +304,7 @@ export default function UnifiedScanView() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
               <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                B. Website Context & Discovered Pages (TinyFish Intelligence)
+                B. Solution and Fixes (TinyFish Intelligence)
               </h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

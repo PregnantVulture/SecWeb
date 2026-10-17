@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
   if (!record) {
     // Generate new token
-    const token = 'tf_verify_' + crypto.randomBytes(16).toString('hex');
+    const token = 'secweb_verify_' + crypto.randomBytes(16).toString('hex');
     record = {
       domain,
       token,
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     ownershipStore.set(domain, record);
   } else if (record.expiresAt < Date.now()) {
     // Refresh expired token
-    const token = 'tf_verify_' + crypto.randomBytes(16).toString('hex');
+    const token = 'secweb_verify_' + crypto.randomBytes(16).toString('hex');
     record.token = token;
     record.verified = false;
     record.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     domain,
     token: record.token,
     verified: record.verified,
-    metaTag: `<meta name="siteshield-verify" content="${record.token}" />`,
+    metaTag: `<meta name="secweb-verify" content="${record.token}" />`,
   });
 }
 
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       const res = await fetch(targetUrl, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'SecWeb-SiteShield-Verifier/1.0',
+          'User-Agent': 'SecWeb-Verifier/1.0',
         },
       });
       clearTimeout(timeoutId);
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
         const res = await fetch(`http://${domain}`, {
           signal: controller.signal,
           headers: {
-            'User-Agent': 'SecWeb-SiteShield-Verifier/1.0',
+            'User-Agent': 'SecWeb-Verifier/1.0',
           },
         });
         clearTimeout(timeoutId);
@@ -124,14 +124,14 @@ export async function POST(request: Request) {
     }
 
     // Check if meta tag containing the token is present in the HTML
-    const expectedMeta = `<meta name="siteshield-verify" content="${record.token}" />`;
-    const altMeta1 = `<meta content="${record.token}" name="siteshield-verify"/>`;
-    const altMeta2 = `<meta name="siteshield-verify" content='${record.token}' />`;
+    const expectedMeta = `<meta name="secweb-verify" content="${record.token}" />`;
+    const altMeta1 = `<meta content="${record.token}" name="secweb-verify"/>`;
+    const altMeta2 = `<meta name="secweb-verify" content='${record.token}' />`;
 
     const isVerified = html.includes(expectedMeta) ||
                        html.includes(altMeta1) ||
                        html.includes(altMeta2) ||
-                       html.includes(`name="siteshield-verify"`) && html.includes(record.token);
+                       (html.includes(`name="secweb-verify"`) && html.includes(record.token));
 
     if (isVerified) {
       record.verified = true;
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         verified: false,
-        error: `Verification meta tag not found on ${targetUrl}. Please ensure <meta name="siteshield-verify" content="${record.token}" /> is deployed in the <head> of your website.`,
+        error: `Verification meta tag not found on ${targetUrl}. Please ensure <meta name="secweb-verify" content="${record.token}" /> is deployed in the <head> of your website.`,
       }, { status: 400 });
     }
   } catch (err: unknown) {

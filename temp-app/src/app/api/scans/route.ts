@@ -248,7 +248,7 @@ export async function POST(request: Request) {
       const ownershipRecord = ownershipStore?.get(normalizedHost);
       if (!ownershipRecord || !ownershipRecord.verified || ownershipRecord.expiresAt < Date.now()) {
         return NextResponse.json({
-          error: `Domain ownership verification required for ${normalizedHost}. Please verify ownership via SiteShield before scanning.`,
+          error: `Domain ownership verification required for ${normalizedHost}. Please verify ownership via SecWeb before scanning.`,
           requiresVerification: true,
           normalizedHost,
         }, { status: 403 });

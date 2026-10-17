@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import SiteShieldVerification from './SiteShieldVerification';
+import SecWebVerification from './SecWebVerification';
 
 interface ZapAlert {
   id: string;
@@ -106,6 +106,13 @@ export default function UnifiedScanView() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [activeScan, setActiveScan] = useState<ScanRecord | null>(null);
 
+  // New Dashboard Navigation State
+  const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'intelligence' | 'remediation'>('overview');
+  const [selectedFindingId, setSelectedFindingId] = useState<string>('');
+  const [findingSeverityFilter, setFindingSeverityFilter] = useState<string>('all');
+  const [findingSearchQuery, setFindingSearchQuery] = useState<string>('');
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
   const fetchScans = async () => {
     try {
       const res = await fetch('/api/scans');
@@ -114,6 +121,9 @@ export default function UnifiedScanView() {
         setScans(data.scans);
         if (data.scans.length > 0 && !activeScan) {
           setActiveScan(data.scans[0]);
+          if (data.scans[0].zapAlerts.length > 0) {
+            setSelectedFindingId(data.scans[0].zapAlerts[0].id);
+          }
         }
       }
     } catch {
@@ -123,6 +133,7 @@ export default function UnifiedScanView() {
 
   useEffect(() => {
     fetchScans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScanWebsite = async (e: React.FormEvent) => {
@@ -149,6 +160,9 @@ export default function UnifiedScanView() {
 
       if (data.scan) {
         setActiveScan(data.scan);
+        if (data.scan.zapAlerts.length > 0) {
+          setSelectedFindingId(data.scan.zapAlerts[0].id);
+        }
       }
       setShowVerificationModal(false);
       await fetchScans();
@@ -163,6 +177,14 @@ export default function UnifiedScanView() {
   const handleDemoClick = () => {
     setTargetUrl('https://demositeforsecweb.com');
     setIsDemoActive(true);
+  };
+
+  const handleSelectScan = (scan: ScanRecord) => {
+    setActiveScan(scan);
+    if (scan.zapAlerts.length > 0) {
+      setSelectedFindingId(scan.zapAlerts[0].id);
+    }
+    setShowHistoryModal(false);
   };
 
   const handleCompare = async (e: React.FormEvent) => {
@@ -195,406 +217,561 @@ export default function UnifiedScanView() {
 
   const completedScans = scans.filter(s => s.status === 'completed');
 
+  const filteredFindings = activeScan ? activeScan.zapAlerts.filter(f => {
+    const matchesSev = findingSeverityFilter === 'all' || f.risk.toLowerCase() === findingSeverityFilter.toLowerCase();
+    const matchesSearch = findingSearchQuery === '' || f.name.toLowerCase().includes(findingSearchQuery.toLowerCase()) || f.url.toLowerCase().includes(findingSearchQuery.toLowerCase());
+    return matchesSev && matchesSearch;
+  }) : [];
+
+  const selectedFinding = activeScan?.zapAlerts.find(f => f.id === selectedFindingId) || activeScan?.zapAlerts[0];
+
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 font-sans">
-      {/* Top Banner / Hero */}
-      <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6 font-sans pb-16">
+      {/* Top Scanner Control Bar */}
+      <div className="bg-zinc-900/90 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-zinc-800 space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
           <div>
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
-              Unified Security Scanner
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[11px] font-mono tracking-widest text-emerald-400 uppercase">SecWeb Intelligence & Scanner</span>
+            </div>
+            <h2 className="text-xl font-black text-zinc-100 tracking-tight mt-0.5">
+              Unified Vulnerability Assessment
             </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Coordinate TinyFish intelligence discovery and OWASP ZAP vulnerability analysis in one click.
-            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleDemoClick}
-              className="px-4 py-2 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
+              className="px-3 py-1.5 text-xs font-semibold bg-blue-950/60 text-blue-300 border border-blue-800/80 rounded-lg hover:bg-blue-900/60 transition-colors shadow-sm"
             >
-              🚀 Demo Result (demositeforsecweb.com)
+              🚀 Demo Scan (demositeforsecweb.com)
             </button>
             <button
               type="button"
               onClick={() => setShowVerificationModal(!showVerificationModal)}
-              className="px-4 py-2 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
+              className="px-3 py-1.5 text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/80 rounded-lg hover:bg-emerald-900/60 transition-colors"
             >
-              {showVerificationModal ? 'Hide SiteShield' : '🛡️ SiteShield Domain Verification'}
+              {showVerificationModal ? 'Hide SecWeb' : '🛡️ SecWeb Domain Verification'}
             </button>
+            {scans.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(!showHistoryModal)}
+                className="px-3 py-1.5 text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors"
+              >
+                📂 History & Compare ({scans.length})
+              </button>
+            )}
           </div>
         </div>
 
         {showVerificationModal && (
-          <SiteShieldVerification
+          <SecWebVerification
             targetHost={targetUrl}
             onVerified={() => setShowVerificationModal(false)}
           />
         )}
 
+        {showHistoryModal && (
+          <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-zinc-200">Scan History & Comparison Vault</h3>
+              <button onClick={() => setShowHistoryModal(false)} className="text-xs text-zinc-400 hover:text-zinc-200">✕ Close</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-zinc-900 text-zinc-400 uppercase">
+                  <tr>
+                    <th className="px-3 py-2">Scan ID</th>
+                    <th className="px-3 py-2">Target</th>
+                    <th className="px-3 py-2">Type</th>
+                    <th className="px-3 py-2">Findings</th>
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {scans.map(s => (
+                    <tr key={s.id} className="hover:bg-zinc-900/50">
+                      <td className="px-3 py-2 font-mono font-medium text-emerald-400">{s.id}</td>
+                      <td className="px-3 py-2 truncate max-w-[180px]">{s.normalizedHost}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${s.isIllustrativeDemo ? 'bg-blue-950 text-blue-300' : 'bg-emerald-950 text-emerald-300'}`}>
+                          {s.isIllustrativeDemo ? 'Demo' : 'Live'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 font-semibold">H:{s.severityCounts.High} M:{s.severityCounts.Medium}</td>
+                      <td className="px-3 py-2 text-zinc-400">{new Date(s.startTime).toLocaleDateString()}</td>
+                      <td className="px-3 py-2">
+                        <button onClick={() => handleSelectScan(s)} className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 text-white rounded hover:bg-emerald-700">
+                          Select
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Quick Compare subsection */}
+            <div className="pt-3 border-t border-zinc-800 space-y-3">
+              <h4 className="text-xs font-bold text-zinc-300">Compare Two Scans</h4>
+              <form onSubmit={handleCompare} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <select value={olderId} onChange={e => setOlderId(e.target.value)} className="px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded text-zinc-200">
+                  <option value="">Older scan...</option>
+                  {completedScans.map(s => <option key={s.id} value={s.id}>{s.id} ({s.normalizedHost})</option>)}
+                </select>
+                <select value={newerId} onChange={e => setNewerId(e.target.value)} className="px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded text-zinc-200">
+                  <option value="">Newer scan...</option>
+                  {completedScans.map(s => <option key={s.id} value={s.id}>{s.id} ({s.normalizedHost})</option>)}
+                </select>
+                <button type="submit" disabled={loading} className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded hover:bg-blue-700">
+                  Compare
+                </button>
+              </form>
+              {comparison && (
+                <div className="p-3 bg-zinc-900 rounded border border-zinc-800 grid grid-cols-3 text-center text-xs">
+                  <div><span className="text-[10px] text-red-400 block font-bold">NEW</span><span className="text-sm font-black text-red-300">{comparison.summary.newCount}</span></div>
+                  <div><span className="text-[10px] text-amber-400 block font-bold">PERSISTENT</span><span className="text-sm font-black text-amber-300">{comparison.summary.persistentCount}</span></div>
+                  <div><span className="text-[10px] text-emerald-400 block font-bold">RESOLVED</span><span className="text-sm font-black text-emerald-300">{comparison.summary.resolvedCount}</span></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {error && (
-          <div className="p-4 text-sm text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-xl border border-red-200">
+          <div className="p-3 text-xs text-red-400 bg-red-950/40 rounded-xl border border-red-900">
             {error}
           </div>
         )}
 
-        {/* One-Click Scan Form */}
-        <form onSubmit={handleScanWebsite} className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={targetUrl}
-            onChange={(e) => {
-              setTargetUrl(e.target.value);
-              if (isDemoActive && e.target.value !== 'https://demositeforsecweb.com') {
-                setIsDemoActive(false);
-              }
-            }}
-            placeholder="https://anshwadhwaold.vercel.app"
-            required
-            className="flex-1 px-4 py-3 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className={`px-8 py-3 text-sm font-semibold text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 ${
-              isDemoActive
-                ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
-                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-            }`}
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Orchestrating Scan...
-              </>
-            ) : isDemoActive ? (
-              'Run Demo Scan'
-            ) : (
-              'Scan Website'
-            )}
-          </button>
-        </form>
+        {/* Workflow steps hint & form */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-zinc-400 font-mono">
+            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">01</span> Validate Target
+            </div>
+            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">02</span> TinyFish Discovery
+            </div>
+            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">03</span> OWASP ZAP Analysis
+            </div>
+            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">04</span> Verified Report
+            </div>
+          </div>
+
+          <form onSubmit={handleScanWebsite} className="flex flex-col sm:flex-row gap-3 pt-1">
+            <input
+              type="text"
+              value={targetUrl}
+              onChange={(e) => {
+                setTargetUrl(e.target.value);
+                if (isDemoActive && e.target.value !== 'https://demositeforsecweb.com') {
+                  setIsDemoActive(false);
+                }
+              }}
+              placeholder="https://example.com"
+              required
+              className="flex-1 px-4 py-3 text-sm border border-zinc-700 rounded-xl bg-zinc-950 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className={`px-8 py-3 text-sm font-semibold text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 ${
+                isDemoActive
+                  ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Running Pipeline...
+                </>
+              ) : isDemoActive ? (
+                'Run Demo Scan'
+              ) : (
+                'Scan Website'
+              )}
+            </button>
+          </form>
+        </div>
       </div>
 
-      {/* Unified Report View (Active Scan) */}
-      {activeScan && (
-        <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-zinc-200 dark:border-zinc-800 gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  Unified Report • {activeScan.id}
+      {/* Redesigned Dashboard Report Interface */}
+      {activeScan ? (
+        <div className="bg-zinc-900/90 backdrop-blur-md rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden space-y-6">
+          {/* Compact Scan Header Bar */}
+          <div className="p-6 bg-zinc-950/70 border-b border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                  {activeScan.id}
                 </span>
-                {activeScan.isIllustrativeDemo && (
-                  <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 rounded-full">
+                {activeScan.isIllustrativeDemo ? (
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-950 text-blue-300 rounded-full border border-blue-800">
                     Illustrative Demo Data
                   </span>
+                ) : (
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-300 rounded-full border border-emerald-800">
+                    Live Scan Result
+                  </span>
                 )}
+                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
+                  ● {activeScan.status}
+                </span>
               </div>
-              <h3 className="text-xl font-black text-zinc-900 dark:text-zinc-100 mt-1">
+              <h3 className="text-xl font-black text-zinc-100 tracking-tight font-mono">
                 {activeScan.targetUrl}
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Scanned on {new Date(activeScan.startTime).toLocaleString()} • Status: <span className="font-semibold text-emerald-600 uppercase">{activeScan.status}</span>
+              <p className="text-xs text-zinc-400">
+                Completed on {new Date(activeScan.startTime).toLocaleString()} • {activeScan.coverageAndStatus.latencyMs}ms pipeline latency
               </p>
             </div>
-            <div className="flex gap-2">
-              <div className="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-center">
-                <span className="text-[10px] text-red-600 dark:text-red-400 block font-bold uppercase">High</span>
-                <span className="text-sm font-black text-red-700 dark:text-red-300">{activeScan.severityCounts.High}</span>
+
+            {/* Severity Pill Summary */}
+            <div className="flex items-center gap-2">
+              <div className="px-3.5 py-2 bg-red-950/50 border border-red-900/60 rounded-xl text-center min-w-[70px]">
+                <span className="text-[10px] text-red-400 block font-bold uppercase">High</span>
+                <span className="text-base font-black text-red-300">{activeScan.severityCounts.High}</span>
               </div>
-              <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg text-center">
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 block font-bold uppercase">Medium</span>
-                <span className="text-sm font-black text-amber-700 dark:text-amber-300">{activeScan.severityCounts.Medium}</span>
+              <div className="px-3.5 py-2 bg-amber-950/50 border border-amber-900/60 rounded-xl text-center min-w-[70px]">
+                <span className="text-[10px] text-amber-400 block font-bold uppercase">Medium</span>
+                <span className="text-base font-black text-amber-300">{activeScan.severityCounts.Medium}</span>
+              </div>
+              <div className="px-3.5 py-2 bg-zinc-800/80 border border-zinc-700/60 rounded-xl text-center min-w-[70px]">
+                <span className="text-[10px] text-zinc-400 block font-bold uppercase">Total</span>
+                <span className="text-base font-black text-zinc-100">{activeScan.totalFindings}</span>
               </div>
             </div>
           </div>
 
-          {/* Section 1: Security Findings — OWASP ZAP */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-              <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                1. Security Findings — OWASP ZAP
-              </h4>
-            </div>
-            {activeScan.zapAlerts.length === 0 ? (
-              <p className="text-sm text-zinc-500 italic p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">No security alerts reported by OWASP ZAP for this target.</p>
-            ) : (
-              <div className="space-y-3">
-                {activeScan.zapAlerts.map(alert => (
-                  <div key={alert.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{alert.name}</span>
-                        <span className="text-[10px] font-mono bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-zinc-700 dark:text-zinc-300">{alert.alertId}</span>
-                      </div>
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded ${
-                        alert.risk === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400'
-                      }`}>
-                        {alert.risk} Risk ({alert.confidence} Confidence)
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-300">{alert.description}</p>
-                    <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono truncate">
-                      <strong>Affected URL:</strong> {alert.url}
-                    </div>
-                    {alert.evidence && (
-                      <div className="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900/80 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">
-                        <strong>Evidence:</strong> {alert.evidence}
-                      </div>
-                    )}
-                    {alert.solution && (
-                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-                        <strong>Remediation:</strong> {alert.solution}
-                      </p>
-                    )}
-                    {alert.remediationLink && (
-                      <div className="pt-1">
-                        <a
-                          href={alert.remediationLink.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
-                        >
-                          🔗 How to fix it ({alert.remediationLink.title})
-                        </a>
-                      </div>
-                    )}
+          {/* Report Navigation Tabs */}
+          <div className="px-6 flex border-b border-zinc-800 gap-2 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'overview'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              📊 Overview & Status
+            </button>
+            <button
+              onClick={() => setActiveTab('findings')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'findings'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              🛡️ Security Findings ({activeScan.zapAlerts.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('intelligence')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'intelligence'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              🌐 Website Intelligence ({activeScan.tinyfishIntelligence.discoveredPages.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('remediation')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'remediation'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              🔧 Fixes & Recommendations ({activeScan.remediationRecommendations.length})
+            </button>
+          </div>
+
+          {/* Tab Content Area */}
+          <div className="p-6 pt-2">
+            {/* 1. OVERVIEW TAB */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
+                    <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Execution Engine</span>
+                    <div className="text-sm font-bold text-zinc-200">{activeScan.coverageAndStatus.toolAttribution.join(' + ')}</div>
+                    <p className="text-xs text-zinc-500">Combined surface intelligence crawler and core vulnerability scanner.</p>
                   </div>
-                ))}
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
+                    <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Surface Mapped</span>
+                    <div className="text-sm font-bold text-zinc-200">{activeScan.tinyfishIntelligence.discoveredPages.length} Public Endpoints</div>
+                    <p className="text-xs text-zinc-500">Discovered during active TinyFish intelligence phase.</p>
+                  </div>
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Risk Assessment</span>
+                    <div className="text-sm font-bold text-zinc-200">
+                      {activeScan.severityCounts.High > 0 ? '⚠️ High Risk Action Required' : '✅ Posture Secure'}
+                    </div>
+                    <p className="text-xs text-zinc-500">{activeScan.totalFindings} total security observations recorded.</p>
+                  </div>
+                </div>
+
+                {/* Top Critical Findings Quick Preview */}
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-sm font-bold text-zinc-200">Most Critical Findings Overview</h4>
+                  {activeScan.zapAlerts.length === 0 ? (
+                    <p className="text-xs text-zinc-500 italic p-4 bg-zinc-950/40 rounded-xl">No security findings reported.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {activeScan.zapAlerts.slice(0, 2).map(alert => (
+                        <div key={alert.id} className="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800 flex items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${alert.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                                {alert.risk} Risk
+                              </span>
+                              <span className="text-xs font-bold text-zinc-200">{alert.name}</span>
+                            </div>
+                            <p className="text-xs text-zinc-400 truncate max-w-xl">{alert.description}</p>
+                          </div>
+                          <button
+                            onClick={() => { setActiveTab('findings'); setSelectedFindingId(alert.id); }}
+                            className="px-3 py-1.5 text-xs font-semibold bg-zinc-800 text-zinc-200 rounded-lg hover:bg-zinc-700 shrink-0"
+                          >
+                            Inspect Details →
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Section 2: Website Intelligence — TinyFish */}
-          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                2. Website Intelligence — TinyFish
-              </h4>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{activeScan.tinyfishIntelligence.summary}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeScan.tinyfishIntelligence.discoveredPages.map((page, idx) => (
-                <div key={idx} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">{page.title}</span>
-                    <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 px-2 py-0.5 rounded font-mono">
-                      {page.pageType} • {page.latencyMs}ms
-                    </span>
+            {/* 2. SECURITY FINDINGS TAB (Master-Detail Layout on Desktop) */}
+            {activeTab === 'findings' && (
+              <div className="space-y-4">
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pb-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Search findings by title or URL..."
+                      value={findingSearchQuery}
+                      onChange={e => setFindingSearchQuery(e.target.value)}
+                      className="px-3 py-2 text-xs bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200 w-full sm:w-72 font-mono"
+                    />
+                    <select
+                      value={findingSeverityFilter}
+                      onChange={e => setFindingSeverityFilter(e.target.value)}
+                      className="px-3 py-2 text-xs bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200"
+                    >
+                      <option value="all">All Severities</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
                   </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{page.description}</p>
-                  <div className="space-y-1 text-[11px]">
-                    <div className="text-zinc-600 dark:text-zinc-300">
-                      <strong>Observed Facts:</strong> {page.observedFacts.join(', ')}
-                    </div>
-                    <div className="text-zinc-500 dark:text-zinc-400 italic">
-                      <strong>Classifications:</strong> {page.inferredClassifications.join(', ')}
-                    </div>
-                  </div>
-                  <a href={page.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline truncate block pt-1">
-                    {page.url}
-                  </a>
+                  <span className="text-xs text-zinc-400 font-mono">
+                    Showing {filteredFindings.length} of {activeScan.zapAlerts.length} findings
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Section 3: Fixes & Recommendations */}
-          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-              <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                3. Fixes & Recommendations (Prioritized Checklist)
-              </h4>
-            </div>
-            {activeScan.remediationRecommendations.length === 0 ? (
-              <p className="text-sm text-zinc-500 italic p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">No remediation recommendations required — target scan reported zero actionable findings.</p>
-            ) : (
-              <div className="space-y-3">
-                {activeScan.remediationRecommendations.map(rec => (
-                  <div key={rec.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{rec.findingName}</span>
-                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
-                          rec.priority === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400'
-                        }`}>
-                          {rec.priority} Priority
+                {filteredFindings.length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic p-6 bg-zinc-950/40 rounded-xl text-center">No findings match your search criteria.</p>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    {/* Left List */}
+                    <div className="lg:col-span-5 space-y-2 max-h-[550px] overflow-y-auto pr-1">
+                      {filteredFindings.map(alert => {
+                        const isSelected = selectedFinding?.id === alert.id;
+                        return (
+                          <div
+                            key={alert.id}
+                            onClick={() => setSelectedFindingId(alert.id)}
+                            className={`p-3.5 rounded-xl border cursor-pointer transition-all space-y-1.5 ${
+                              isSelected
+                                ? 'bg-emerald-950/30 border-emerald-500/80 shadow-md'
+                                : 'bg-zinc-950/50 border-zinc-800 hover:border-zinc-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-0.5 text-[9px] font-bold rounded ${alert.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                                {alert.risk} Risk
+                              </span>
+                              <span className="text-[10px] font-mono text-zinc-400">{alert.alertId}</span>
+                            </div>
+                            <h5 className="text-xs font-bold text-zinc-200 line-clamp-1">{alert.name}</h5>
+                            <p className="text-[11px] text-zinc-400 truncate font-mono">{alert.url}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Right Details Panel */}
+                    <div className="lg:col-span-7 bg-zinc-950/80 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                      {selectedFinding ? (
+                        <>
+                          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                            <div>
+                              <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                                {selectedFinding.tool} • {selectedFinding.alertId}
+                              </span>
+                              <h4 className="text-base font-bold text-zinc-100 mt-0.5">{selectedFinding.name}</h4>
+                            </div>
+                            <span className={`px-2.5 py-1 text-xs font-bold rounded ${selectedFinding.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                              {selectedFinding.risk} Risk ({selectedFinding.confidence} Confidence)
+                            </span>
+                          </div>
+
+                          <div className="space-y-3 text-xs text-zinc-300">
+                            <div>
+                              <strong className="text-zinc-400 block mb-1">Affected URL:</strong>
+                              <span className="font-mono bg-zinc-900 p-2 rounded block text-emerald-300 truncate">{selectedFinding.url}</span>
+                            </div>
+
+                            <div>
+                              <strong className="text-zinc-400 block mb-1">Description & Risk Analysis:</strong>
+                              <p className="text-zinc-300 leading-relaxed">{selectedFinding.description}</p>
+                            </div>
+
+                            {selectedFinding.evidence && (
+                              <div>
+                                <strong className="text-zinc-400 block mb-1">Observed Evidence:</strong>
+                                <div className="font-mono bg-zinc-900/90 p-2.5 rounded border border-zinc-800 text-zinc-200 text-[11px]">
+                                  {selectedFinding.evidence}
+                                </div>
+                              </div>
+                            )}
+
+                            {selectedFinding.solution && (
+                              <div>
+                                <strong className="text-zinc-400 block mb-1">Remediation Guidance:</strong>
+                                <p className="text-emerald-400 font-medium">{selectedFinding.solution}</p>
+                              </div>
+                            )}
+
+                            {selectedFinding.remediationLink && (
+                              <div className="pt-2">
+                                <a
+                                  href={selectedFinding.remediationLink.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:underline bg-emerald-950/40 px-3 py-2 rounded-lg border border-emerald-900/60"
+                                >
+                                  🔗 Read official guide: {selectedFinding.remediationLink.title}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xs text-zinc-500 italic p-6 text-center">Select a finding from the left list to view technical details.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. WEBSITE INTELLIGENCE TAB */}
+            {activeTab === 'intelligence' && (
+              <div className="space-y-4">
+                <p className="text-xs text-zinc-400">
+                  {activeScan.tinyfishIntelligence.summary} These entries represent website observations and asset discovery, not verified vulnerabilities.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeScan.tinyfishIntelligence.discoveredPages.map((page, idx) => (
+                    <div key={idx} className="p-4 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-zinc-200 truncate">{page.title}</span>
+                        <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded font-mono border border-emerald-900">
+                          {page.pageType} • {page.latencyMs}ms
                         </span>
                       </div>
-                      <span className="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-2 py-0.5 rounded font-semibold">
-                        {rec.isTargetSpecific ? 'Target-Specific' : 'Standard Advisory'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-300">{rec.beginnerExplanation}</p>
-                    <div className="space-y-1 bg-zinc-100 dark:bg-zinc-900/60 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                      <strong className="text-xs text-zinc-700 dark:text-zinc-200 block mb-1">Beginner-Friendly Next Steps:</strong>
-                      <ul className="list-disc list-inside text-xs text-zinc-600 dark:text-zinc-300 space-y-0.5">
-                        {rec.practicalNextSteps.map((step, sIdx) => (
-                          <li key={sIdx}>{step}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    {rec.remediationLink && (
-                      <div className="pt-1">
-                        <a
-                          href={rec.remediationLink.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          📖 Read guidance in {rec.remediationLink.title}
-                        </a>
+                      <p className="text-xs text-zinc-400">{page.description}</p>
+                      <div className="space-y-1 text-[11px] bg-zinc-900/50 p-2.5 rounded border border-zinc-800">
+                        <div className="text-zinc-300"><strong>Observed Facts:</strong> {page.observedFacts.join(', ')}</div>
+                        <div className="text-zinc-400 italic"><strong>Classifications:</strong> {page.inferredClassifications.join(', ')}</div>
                       </div>
-                    )}
+                      <a href={page.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-emerald-400 hover:underline truncate block pt-1 font-mono">
+                        {page.url}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. FIXES & RECOMMENDATIONS TAB */}
+            {activeTab === 'remediation' && (
+              <div className="space-y-4">
+                <p className="text-xs text-zinc-400">
+                  Prioritized checklist of actionable remediation steps ordered by severity. Each item links directly to official OWASP guidance.
+                </p>
+                {activeScan.remediationRecommendations.length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic p-6 bg-zinc-950/40 rounded-xl text-center">No remediation actions required for this target.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeScan.remediationRecommendations.map(rec => (
+                      <div key={rec.id} className="p-5 bg-zinc-950/60 rounded-2xl border border-zinc-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-zinc-200">{rec.findingName}</span>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${rec.priority === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                              {rec.priority} Priority
+                            </span>
+                          </div>
+                          <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded font-semibold border border-blue-900">
+                            {rec.isTargetSpecific ? 'Target-Specific' : 'Standard Advisory'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 leading-relaxed">{rec.beginnerExplanation}</p>
+                        <div className="space-y-1.5 bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
+                          <strong className="text-xs text-zinc-200 block mb-1">Beginner-Friendly Action Steps:</strong>
+                          <ul className="list-disc list-inside text-xs text-zinc-300 space-y-1 font-mono">
+                            {rec.practicalNextSteps.map((step, sIdx) => (
+                              <li key={sIdx}>{step}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        {rec.remediationLink && (
+                          <div className="pt-1">
+                            <a
+                              href={rec.remediationLink.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:underline bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-900/50"
+                            >
+                              📖 Read reference guide in {rec.remediationLink.title}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
-
-          {/* Section 4: Scan Coverage and Status */}
-          <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-              <h4 className="text-md font-bold text-zinc-900 dark:text-zinc-100">
-                4. Scan Coverage and Status
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                <span className="text-zinc-400 block font-bold mb-1">Tool Attribution</span>
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{activeScan.coverageAndStatus.toolAttribution.join(', ')}</span>
-              </div>
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                <span className="text-zinc-400 block font-bold mb-1">Measured Latency</span>
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200 font-mono">{activeScan.coverageAndStatus.latencyMs} ms total</span>
-              </div>
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                <span className="text-zinc-400 block font-bold mb-1">Completion Status</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{activeScan.coverageAndStatus.completionStatus}</span>
-              </div>
-            </div>
+        </div>
+      ) : (
+        <div className="bg-zinc-900/95 p-12 rounded-2xl shadow-xl border border-zinc-800 text-center space-y-4">
+          <div className="w-12 h-12 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-xl border border-emerald-800">
+            🛡️
           </div>
+          <h3 className="text-lg font-bold text-zinc-100">No Active Scan Report Loaded</h3>
+          <p className="text-xs text-zinc-400 max-w-md mx-auto">
+            Enter a target URL above and click <span className="text-emerald-400 font-semibold">Scan Website</span>, or load the <span className="text-blue-400 font-semibold">Demo Scan</span> to explore the fully redesigned SecWeb dashboard.
+          </p>
         </div>
       )}
-
-      {/* Scan History & Comparison */}
-      <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 space-y-6">
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Scan History & Comparison</h3>
-        {scans.length === 0 ? (
-          <p className="text-sm text-zinc-500 italic">No historical scans recorded yet.</p>
-        ) : (
-          <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl">
-            <table className="w-full text-left text-sm text-zinc-600 dark:text-zinc-300">
-              <thead className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3">Scan ID</th>
-                  <th className="px-4 py-3">Target Host</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Findings</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {scans.map((scan) => (
-                  <tr key={scan.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                    <td className="px-4 py-3 font-mono font-medium text-zinc-900 dark:text-zinc-100">{scan.id}</td>
-                    <td className="px-4 py-3">{scan.normalizedHost}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${scan.isIllustrativeDemo ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'}`}>
-                        {scan.isIllustrativeDemo ? 'Demo' : 'Live'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">
-                      {scan.totalFindings} (H:{scan.severityCounts.High}, M:{scan.severityCounts.Medium})
-                    </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">{new Date(scan.startTime).toLocaleString()}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setActiveScan(scan)}
-                        className="px-3 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                      >
-                        View Report
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Scan-to-Scan Comparison */}
-        <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
-          <h4 className="text-md font-semibold text-zinc-900 dark:text-zinc-100">Scan-to-Scan Comparison</h4>
-          <form onSubmit={handleCompare} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Older Scan</label>
-              <select
-                value={olderId}
-                onChange={(e) => setOlderId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-              >
-                <option value="">Select older scan...</option>
-                {completedScans.map(s => (
-                  <option key={s.id} value={s.id}>{s.id} ({s.normalizedHost})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Newer Scan</label>
-              <select
-                value={newerId}
-                onChange={(e) => setNewerId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-              >
-                <option value="">Select newer scan...</option>
-                {completedScans.map(s => (
-                  <option key={s.id} value={s.id}>{s.id} ({s.normalizedHost})</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
-              >
-                Compare Scans
-              </button>
-            </div>
-          </form>
-
-          {comparison && (
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3">
-              <h5 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">Comparison Results ({comparison.targetHost})</h5>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
-                  <span className="text-[10px] text-red-600 font-bold block">NEW</span>
-                  <span className="text-lg font-black text-red-700">{comparison.summary.newCount}</span>
-                </div>
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
-                  <span className="text-[10px] text-amber-600 font-bold block">PERSISTENT</span>
-                  <span className="text-lg font-black text-amber-700">{comparison.summary.persistentCount}</span>
-                </div>
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                  <span className="text-[10px] text-emerald-600 font-bold block">RESOLVED</span>
-                  <span className="text-lg font-black text-emerald-700">{comparison.summary.resolvedCount}</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

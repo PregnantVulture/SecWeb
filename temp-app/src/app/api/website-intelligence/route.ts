@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.TINYFISH_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Server configuration error: TinyFish API key missing' },
+        { error: 'Server configuration error: Intelligence API key missing' },
         { status: 500 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     if (!tinyfishResponse.ok) {
       const errorText = await tinyfishResponse.text();
       return NextResponse.json(
-        { error: `TinyFish API error (${tinyfishResponse.status}): ${errorText}` },
+        { error: `Intelligence API error (${tinyfishResponse.status}): ${errorText}` },
         { status: tinyfishResponse.status }
       );
     }
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     const errorObj = err as { name?: string; message?: string };
     if (errorObj.name === 'AbortError') {
       return NextResponse.json(
-        { error: 'Request to TinyFish API timed out' },
+        { error: 'Request to Intelligence API timed out' },
         { status: 504 }
       );
     }

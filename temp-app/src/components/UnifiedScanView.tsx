@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import SecWebVerification from './SecWebVerification';
 
-interface ZapAlert {
+interface Finding {
   id: string;
   alertId: string;
   name: string;
@@ -19,11 +19,11 @@ interface ZapAlert {
     title: string;
     url: string;
   };
-  tool: 'OWASP ZAP';
+  tool: 'SecWeb Engine';
   fingerprint: string;
 }
 
-interface TinyFishPage {
+interface DiscoveredPage {
   url: string;
   title: string;
   description: string;
@@ -66,9 +66,9 @@ interface ScanRecord {
     Low: number;
     Informational: number;
   };
-  zapAlerts: ZapAlert[];
+  findings: Finding[];
   tinyfishIntelligence: {
-    discoveredPages: TinyFishPage[];
+    discoveredPages: DiscoveredPage[];
     summary: string;
   };
   remediationRecommendations: RemediationRecommendation[];
@@ -89,9 +89,9 @@ interface ComparisonResult {
     persistentCount: number;
     resolvedCount: number;
   };
-  newFindings: ZapAlert[];
-  persistentFindings: { older: ZapAlert; newer: ZapAlert; severityChanged: boolean }[];
-  resolvedFindings: ZapAlert[];
+  newFindings: Finding[];
+  persistentFindings: { older: Finding; newer: Finding; severityChanged: boolean }[];
+  resolvedFindings: Finding[];
 }
 
 export default function UnifiedScanView() {
@@ -118,16 +118,28 @@ export default function UnifiedScanView() {
   const [findingSearchQuery, setFindingSearchQuery] = useState<string>('');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  const getClientIdHeaders = (): Record<string, string> => {
+    if (typeof window === 'undefined') return {};
+    let clientId = localStorage.getItem('secweb_device_id');
+    if (!clientId) {
+      clientId = 'sec_' + Math.random().toString(36).substring(2) + '_' + Date.now().toString(36);
+      localStorage.setItem('secweb_device_id', clientId);
+    }
+    return { 'x-secweb-client-id': clientId };
+  };
+
   const fetchScans = async () => {
     try {
-      const res = await fetch('/api/scans');
+      const res = await fetch('/api/scans', {
+        headers: getClientIdHeaders(),
+      });
       const data = await res.json() as { success: boolean; scans: ScanRecord[] };
       if (data.success) {
         setScans(data.scans);
         if (data.scans.length > 0 && !activeScan) {
           setActiveScan(data.scans[0]);
-          if (data.scans[0].zapAlerts.length > 0) {
-            setSelectedFindingId(data.scans[0].zapAlerts[0].id);
+          if (data.scans[0].findings.length > 0) {
+            setSelectedFindingId(data.scans[0].findings[0].id);
           }
         }
       }
@@ -150,9 +162,13 @@ export default function UnifiedScanView() {
     setComparison(null);
 
     try {
+      const headersObj: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...getClientIdHeaders(),
+      };
       const res = await fetch('/api/scans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headersObj,
         body: JSON.stringify({ targetUrl, isDemo: isDemoActive }),
       });
       const data = await res.json() as { error?: string; requiresVerification?: boolean; scan?: ScanRecord };
@@ -165,8 +181,8 @@ export default function UnifiedScanView() {
 
       if (data.scan) {
         setActiveScan(data.scan);
-        if (data.scan.zapAlerts.length > 0) {
-          setSelectedFindingId(data.scan.zapAlerts[0].id);
+        if (data.scan.findings.length > 0) {
+          setSelectedFindingId(data.scan.findings[0].id);
         }
       }
       setShowVerificationModal(false);
@@ -186,8 +202,8 @@ export default function UnifiedScanView() {
 
   const handleSelectScan = (scan: ScanRecord) => {
     setActiveScan(scan);
-    if (scan.zapAlerts.length > 0) {
-      setSelectedFindingId(scan.zapAlerts[0].id);
+    if (scan.findings.length > 0) {
+      setSelectedFindingId(scan.findings[0].id);
     }
     setShowHistoryModal(false);
   };
@@ -204,9 +220,13 @@ export default function UnifiedScanView() {
     setComparison(null);
 
     try {
+      const headersObj: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...getClientIdHeaders(),
+      };
       const res = await fetch('/api/scans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headersObj,
         body: JSON.stringify({ action: 'compare', olderScanId: olderId, newerScanId: newerId }),
       });
       const data = await res.json() as { error?: string; comparison?: ComparisonResult };
@@ -222,13 +242,13 @@ export default function UnifiedScanView() {
 
   const completedScans = scans.filter(s => s.status === 'completed');
 
-  const filteredFindings = activeScan ? activeScan.zapAlerts.filter(f => {
+  const filteredFindings = activeScan ? activeScan.findings.filter(f => {
     const matchesSev = findingSeverityFilter === 'all' || f.risk.toLowerCase() === findingSeverityFilter.toLowerCase();
     const matchesSearch = findingSearchQuery === '' || f.name.toLowerCase().includes(findingSearchQuery.toLowerCase()) || f.url.toLowerCase().includes(findingSearchQuery.toLowerCase());
     return matchesSev && matchesSearch;
   }) : [];
 
-  const selectedFinding = activeScan?.zapAlerts.find(f => f.id === selectedFindingId) || activeScan?.zapAlerts[0];
+  const selectedFinding = activeScan?.findings.find(f => f.id === selectedFindingId) || activeScan?.findings[0];
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 font-sans pb-16">
@@ -257,7 +277,7 @@ export default function UnifiedScanView() {
               onClick={() => setShowVerificationModal(!showVerificationModal)}
               className="px-3 py-1.5 text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/80 rounded-lg hover:bg-emerald-900/60 transition-colors"
             >
-              {showVerificationModal ? 'Hide SecWeb' : 'SecWeb Domain Verification'}
+              {showVerificationModal ? 'Hide Domain Verification' : 'Domain Verification'}
             </button>
             {scans.length > 0 && (
               <button
@@ -271,12 +291,14 @@ export default function UnifiedScanView() {
           </div>
         </div>
 
-        {showVerificationModal && (
-          <SecWebVerification
-            targetHost={targetUrl}
-            onVerified={() => setShowVerificationModal(false)}
-          />
-        )}
+        <SecWebVerification
+          targetHost={targetUrl}
+          onVerified={() => setShowVerificationModal(false)}
+          onDomainSelected={(dom) => {
+            setTargetUrl(`https://${dom}`);
+            setIsDemoActive(false);
+          }}
+        />
 
         {showHistoryModal && (
           <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 space-y-4">
@@ -359,10 +381,10 @@ export default function UnifiedScanView() {
               <span className="text-emerald-500 font-bold">01</span> Validate Target
             </div>
             <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">02</span> TinyFish Discovery
+              <span className="text-emerald-500 font-bold">02</span> Surface Discovery
             </div>
             <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">03</span> OWASP ZAP Analysis
+              <span className="text-emerald-500 font-bold">03</span> Vulnerability Analysis
             </div>
             <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
               <span className="text-emerald-500 font-bold">04</span> Verified Report
@@ -478,7 +500,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Security Findings ({activeScan.zapAlerts.length})
+              Security Findings ({activeScan.findings.length})
             </button>
             <button
               onClick={() => switchTab('intelligence')}
@@ -516,7 +538,7 @@ export default function UnifiedScanView() {
                   <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
                     <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Surface Mapped</span>
                     <div className="text-sm font-bold text-zinc-200">{activeScan.tinyfishIntelligence.discoveredPages.length} Public Endpoints</div>
-                    <p className="text-xs text-zinc-500">Discovered during active TinyFish intelligence phase.</p>
+                    <p className="text-xs text-zinc-500">Discovered during active surface intelligence phase.</p>
                   </div>
                   <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                     <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Risk Assessment</span>
@@ -530,11 +552,11 @@ export default function UnifiedScanView() {
                 {/* Top Critical Findings Quick Preview */}
                 <div className="space-y-3 pt-2">
                   <h4 className="text-sm font-bold text-zinc-200">Most Critical Findings Overview</h4>
-                  {activeScan.zapAlerts.length === 0 ? (
+                  {activeScan.findings.length === 0 ? (
                     <p className="text-xs text-zinc-500 italic p-4 bg-zinc-950/40 rounded-xl">No security findings reported.</p>
                   ) : (
                     <div className="space-y-2">
-                      {activeScan.zapAlerts.slice(0, 2).map(alert => (
+                      {activeScan.findings.slice(0, 2).map(alert => (
                         <div key={alert.id} className="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800 flex items-center justify-between gap-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
@@ -584,7 +606,7 @@ export default function UnifiedScanView() {
                     </select>
                   </div>
                   <span className="text-xs text-zinc-400 font-mono">
-                    Showing {filteredFindings.length} of {activeScan.zapAlerts.length} findings
+                    Showing {filteredFindings.length} of {activeScan.findings.length} findings
                   </span>
                 </div>
 
@@ -718,7 +740,7 @@ export default function UnifiedScanView() {
             {activeTab === 'remediation' && (
               <div className="space-y-4">
                 <p className="text-xs text-zinc-400">
-                  Prioritized checklist of actionable remediation steps ordered by severity. Each item links directly to official OWASP guidance.
+                  Prioritized checklist of actionable remediation steps ordered by severity. Each item links directly to official reference guidance.
                 </p>
                 {activeScan.remediationRecommendations.length === 0 ? (
                   <p className="text-xs text-zinc-500 italic p-6 bg-zinc-950/40 rounded-xl text-center">No remediation actions required for this target.</p>

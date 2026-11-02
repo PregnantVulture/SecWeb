@@ -1,0 +1,15 @@
+{
+  "domains": [
+    {
+      "id": "dom_924a9b793335",
+      "clientId": "sec_zfji0qdq2pj_mvznpmj4",
+      "domain": "testweb-neon-eight.vercel.app",
+      "verificationToken": "secweb_verify_d8abd7d1cf35b2569e142ff5afcec9ae",
+      "status": "verified",
+      "verifiedAt": "2026-11-02T20:36:28.565Z",
+      "lastScannedAt": null,
+      "createdAt": "2026-11-02T20:35:46.373Z"
+    }
+  ],
+  "scans": []
+}

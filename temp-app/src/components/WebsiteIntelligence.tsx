@@ -59,11 +59,11 @@ export default function WebsiteIntelligence() {
             Website Intelligence
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Extract clean markdown, titles, and metadata using TinyFish AI.
+            Extract clean markdown, titles, and metadata from target URLs.
           </p>
         </div>
         <span className="px-3 py-1 text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full">
-          TinyFish Powered
+          Active Powered
         </span>
       </div>
 

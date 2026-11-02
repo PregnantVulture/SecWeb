@@ -250,14 +250,14 @@ export default function UnifiedScanView() {
               onClick={handleDemoClick}
               className="px-3 py-1.5 text-xs font-semibold bg-blue-950/60 text-blue-300 border border-blue-800/80 rounded-lg hover:bg-blue-900/60 transition-colors shadow-sm"
             >
-              🚀 Demo Scan (demositeforsecweb.com)
+              Demo Scan (demositeforsecweb.com)
             </button>
             <button
               type="button"
               onClick={() => setShowVerificationModal(!showVerificationModal)}
               className="px-3 py-1.5 text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/80 rounded-lg hover:bg-emerald-900/60 transition-colors"
             >
-              {showVerificationModal ? 'Hide SecWeb' : '🛡️ SecWeb Domain Verification'}
+              {showVerificationModal ? 'Hide SecWeb' : 'SecWeb Domain Verification'}
             </button>
             {scans.length > 0 && (
               <button
@@ -265,7 +265,7 @@ export default function UnifiedScanView() {
                 onClick={() => setShowHistoryModal(!showHistoryModal)}
                 className="px-3 py-1.5 text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors"
               >
-                📂 History & Compare ({scans.length})
+                History & Compare ({scans.length})
               </button>
             )}
           </div>
@@ -282,7 +282,7 @@ export default function UnifiedScanView() {
           <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-zinc-200">Scan History & Comparison Vault</h3>
-              <button onClick={() => setShowHistoryModal(false)} className="text-xs text-zinc-400 hover:text-zinc-200">✕ Close</button>
+              <button onClick={() => setShowHistoryModal(false)} className="text-xs text-zinc-400 hover:text-zinc-200">Close</button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-zinc-300">
@@ -430,7 +430,7 @@ export default function UnifiedScanView() {
                   </span>
                 )}
                 <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
-                  ● {activeScan.status}
+                  {activeScan.status}
                 </span>
               </div>
               <h3 className="text-xl font-black text-zinc-100 tracking-tight font-mono">
@@ -468,7 +468,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              📊 Overview & Status
+              Overview & Status
             </button>
             <button
               onClick={() => switchTab('findings')}
@@ -478,7 +478,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              🛡️ Security Findings ({activeScan.zapAlerts.length})
+              Security Findings ({activeScan.zapAlerts.length})
             </button>
             <button
               onClick={() => switchTab('intelligence')}
@@ -488,7 +488,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              🌐 Website Intelligence ({activeScan.tinyfishIntelligence.discoveredPages.length})
+              Website Intelligence ({activeScan.tinyfishIntelligence.discoveredPages.length})
             </button>
             <button
               onClick={() => switchTab('remediation')}
@@ -498,7 +498,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              🔧 Fixes & Recommendations ({activeScan.remediationRecommendations.length})
+              Fixes & Recommendations ({activeScan.remediationRecommendations.length})
             </button>
           </div>
 
@@ -521,7 +521,7 @@ export default function UnifiedScanView() {
                   <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                     <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Risk Assessment</span>
                     <div className="text-sm font-bold text-zinc-200">
-                      {activeScan.severityCounts.High > 0 ? '⚠️ High Risk Action Required' : '✅ Posture Secure'}
+                      {activeScan.severityCounts.High > 0 ? 'High Risk Action Required' : 'Posture Secure'}
                     </div>
                     <p className="text-xs text-zinc-500">{activeScan.totalFindings} total security observations recorded.</p>
                   </div>
@@ -670,7 +670,7 @@ export default function UnifiedScanView() {
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:underline bg-emerald-950/40 px-3 py-2 rounded-lg border border-emerald-900/60"
                                 >
-                                  🔗 Read official guide: {selectedFinding.remediationLink.title}
+                                  Read official guide: {selectedFinding.remediationLink.title}
                                 </a>
                               </div>
                             )}
@@ -754,7 +754,7 @@ export default function UnifiedScanView() {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:underline bg-emerald-950/30 px-3 py-2 rounded-lg border border-emerald-900/50"
                             >
-                              📖 Read reference guide in {rec.remediationLink.title}
+                              Read reference guide in {rec.remediationLink.title}
                             </a>
                           </div>
                         )}
@@ -768,8 +768,8 @@ export default function UnifiedScanView() {
         </div>
       ) : (
         <div className="bg-zinc-900/95 p-12 rounded-2xl shadow-xl border border-zinc-800 text-center space-y-4">
-          <div className="w-12 h-12 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-xl border border-emerald-800">
-            🛡️
+          <div className="w-12 h-12 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-xl border border-emerald-800 font-bold">
+            SEC
           </div>
           <h3 className="text-lg font-bold text-zinc-100">No Active Scan Report Loaded</h3>
           <p className="text-xs text-zinc-400 max-w-md mx-auto">

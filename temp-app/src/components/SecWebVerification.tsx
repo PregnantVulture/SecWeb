@@ -85,7 +85,7 @@ export default function SecWebVerification({ targetHost, onVerified }: { targetH
         </div>
         {tokenInfo?.verified ? (
           <span className="px-3 py-1 text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 rounded-full flex items-center gap-1">
-            ✓ Verified
+            Verified Verified
           </span>
         ) : (
           <span className="px-3 py-1 text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-800 rounded-full">

@@ -1,0 +1,313 @@
+{
+  "id": "scan_cd069bd2ff64",
+  "clientId": "sec_kbn9mxq4r18_mw97fob6",
+  "targetUrl": "https://demositeforsecweb.com",
+  "normalizedHost": "demositeforsecweb.com",
+  "startTime": "2026-11-09T12:13:32.020Z",
+  "endTime": "2026-11-09T12:13:32.020Z",
+  "status": "completed",
+  "scanType": "demo-illustrative-scan",
+  "isIllustrativeDemo": true,
+  "totalFindings": 3,
+  "severityCounts": {
+    "Critical": 1,
+    "High": 1,
+    "Medium": 1,
+    "Low": 0,
+    "Informational": 0
+  },
+  "findings": [
+    {
+      "id": "f_demo_1",
+      "alertId": "DEMO-79",
+      "name": "Reflected Cross-Site Scripting (XSS) in Search Parameter",
+      "risk": "High",
+      "confidence": "High",
+      "url": "https://demositeforsecweb.com/search?q=<script>alert(1)</script>",
+      "param": "q",
+      "cweId": "CWE-79",
+      "owasp": "A03:2021 – Injection",
+      "description": "Search query inputs are reflected directly into the HTML response without sanitization, allowing arbitrary script execution in the victim's browser context.",
+      "poc": {
+        "payload": "GET /search?q=<script>alert(document.cookie)</script> HTTP/1.1\nHost: demositeforsecweb.com",
+        "requestSummary": "GET /search?q=<script>alert(document.cookie)</script>",
+        "responseSummary": "HTTP 200 — reflected payload in <div class=\"results\">: <script>alert(document.cookie)</script>",
+        "validated": true
+      },
+      "solution": "Sanitize and encode all user-supplied inputs before rendering in HTML. Implement a strict Content-Security-Policy.",
+      "remediationLink": {
+        "title": "XSS Prevention",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "C",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 6,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "4aabb787ac521e79"
+    },
+    {
+      "id": "f_demo_2",
+      "alertId": "DEMO-89",
+      "name": "SQL Injection in User Authentication Endpoint",
+      "risk": "Critical",
+      "confidence": "High",
+      "url": "https://demositeforsecweb.com/api/v1/auth",
+      "param": "username",
+      "cweId": "CWE-89",
+      "owasp": "A03:2021 – Injection",
+      "description": "The login endpoint constructs database queries using unescaped user parameters. Sending a crafted username bypasses authentication and permits data extraction.",
+      "poc": {
+        "payload": "POST /api/v1/auth HTTP/1.1\nContent-Type: application/json\n\n{\"username\": \"admin' OR '1'='1' --\", \"password\": \"x\"}",
+        "requestSummary": "POST /api/v1/auth — username: admin' OR '1'='1' --",
+        "responseSummary": "HTTP 200 — {\"token\":\"eyJ...\",\"user\":\"admin\",\"role\":\"superadmin\"} — auth bypassed",
+        "validated": true
+      },
+      "solution": "Use parameterized queries or prepared statements. Never concatenate user input into SQL strings.",
+      "remediationLink": {
+        "title": "SQL Injection Prevention",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "N",
+        "scope": "C",
+        "confidentiality": "H",
+        "integrity": "H",
+        "availability": "L",
+        "baseScore": 10,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:L"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "57129fc9d33de7e9"
+    },
+    {
+      "id": "f_demo_3",
+      "alertId": "DEMO-693",
+      "name": "Missing HttpOnly & Secure Flags on Session Cookies",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://demositeforsecweb.com/login",
+      "cweId": "CWE-614",
+      "owasp": "A02:2021 – Cryptographic Failures",
+      "description": "Session cookies are issued without the HttpOnly and Secure flags, making them accessible via JavaScript (enabling XSS-based theft) and transmittable over plaintext connections.",
+      "poc": {
+        "payload": "Set-Cookie: session_id=abc123; Path=/ (observed — no HttpOnly, no Secure, no SameSite)",
+        "requestSummary": "GET /login — response Set-Cookie header inspected",
+        "responseSummary": "Set-Cookie: session_id=abc123; Path=/ — flags missing",
+        "validated": true
+      },
+      "solution": "Set HttpOnly, Secure, and SameSite=Strict on all authentication cookies.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "H",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "H",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.8,
+        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "8091673d9d7cee87"
+    }
+  ],
+  "threatModel": {
+    "entryPoints": [
+      {
+        "type": "endpoint",
+        "label": "Login Form",
+        "url": "https://demositeforsecweb.com/login",
+        "description": "Primary credential entry point. Accepts username/password via POST."
+      },
+      {
+        "type": "endpoint",
+        "label": "Auth API",
+        "url": "https://demositeforsecweb.com/api/v1/auth",
+        "description": "JSON REST auth endpoint used by mobile/SPA clients."
+      },
+      {
+        "type": "parameter",
+        "label": "Search Query (q)",
+        "url": "https://demositeforsecweb.com/search",
+        "description": "User-controlled search query parameter reflected in response."
+      }
+    ],
+    "highValueAssets": [
+      {
+        "type": "data-asset",
+        "label": "Customer PII Database",
+        "description": "User personal information, emails, order histories."
+      },
+      {
+        "type": "data-asset",
+        "label": "Payment Records",
+        "description": "Transaction records and potentially stored card data."
+      }
+    ],
+    "trustBoundaries": [
+      {
+        "type": "trust-boundary",
+        "label": "Public ↔ Auth Zone",
+        "description": "Boundary between unauthenticated public pages and authenticated customer portal."
+      },
+      {
+        "type": "trust-boundary",
+        "label": "Customer ↔ Admin Zone",
+        "description": "Boundary between regular customer sessions and admin panel access."
+      }
+    ],
+    "summary": "Attack surface includes 2 authentication surfaces, 1 user-controlled reflection point, and an exposed admin portal. Primary risks: injection via search, auth bypass via API, privilege escalation to admin."
+  },
+  "tinyfishIntelligence": {
+    "discoveredPages": [
+      {
+        "url": "https://demositeforsecweb.com/",
+        "title": "Demo E-Commerce Storefront",
+        "description": "Hypothetical online retail platform.",
+        "language": "en",
+        "latencyMs": 54,
+        "format": "html",
+        "pageType": "Public Page",
+        "observedFacts": [
+          "HTTP/2 200 OK",
+          "Server: nginx/1.18.0"
+        ],
+        "inferredClassifications": [
+          "Public E-Commerce Catalog"
+        ]
+      },
+      {
+        "url": "https://demositeforsecweb.com/login",
+        "title": "Customer Authentication Portal",
+        "description": "Login and password recovery module.",
+        "language": "en",
+        "latencyMs": 72,
+        "format": "html",
+        "pageType": "Login / Auth",
+        "observedFacts": [
+          "HTML Form detected",
+          "Password input field",
+          "Session cookie issued"
+        ],
+        "inferredClassifications": [
+          "Authentication Gateway"
+        ]
+      },
+      {
+        "url": "https://demositeforsecweb.com/api/v1/auth",
+        "title": "Auth API Endpoint",
+        "description": "REST authentication endpoint.",
+        "language": "en",
+        "latencyMs": 45,
+        "format": "json",
+        "pageType": "API Endpoint",
+        "observedFacts": [
+          "POST endpoint",
+          "JSON body accepted"
+        ],
+        "inferredClassifications": [
+          "Credential Handling Surface"
+        ]
+      },
+      {
+        "url": "https://demositeforsecweb.com/admin",
+        "title": "Store Administration Console",
+        "description": "Internal management dashboard.",
+        "language": "en",
+        "latencyMs": 95,
+        "format": "html",
+        "pageType": "Admin Portal",
+        "observedFacts": [
+          "Restricted path",
+          "Admin header attributes found"
+        ],
+        "inferredClassifications": [
+          "Privileged Management Surface"
+        ]
+      }
+    ],
+    "summary": "Demo surface intelligence successfully mapped 4 assets."
+  },
+  "remediationRecommendations": [
+    {
+      "id": "rec_2",
+      "findingId": "f_demo_2",
+      "findingName": "SQL Injection in User Authentication Endpoint",
+      "issueSummary": "The login endpoint constructs database queries using unescaped user parameters. Sending a crafted username bypasses authentication and permits data extraction.",
+      "beginnerExplanation": "This vulnerability (CWE-89) allows attackers to exploit sql injection in user authentication endpoint. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Use parameterized queries or prepared statements. Never concatenate user input into SQL strings.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "SQL Injection Prevention",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": false,
+      "priority": "Critical"
+    },
+    {
+      "id": "rec_1",
+      "findingId": "f_demo_1",
+      "findingName": "Reflected Cross-Site Scripting (XSS) in Search Parameter",
+      "issueSummary": "Search query inputs are reflected directly into the HTML response without sanitization, allowing arbitrary script execution in the victim's browser context.",
+      "beginnerExplanation": "This vulnerability (CWE-79) allows attackers to exploit reflected cross-site scripting (xss) in search parameter. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Sanitize and encode all user-supplied inputs before rendering in HTML. Implement a strict Content-Security-Policy.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "XSS Prevention",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": false,
+      "priority": "High"
+    },
+    {
+      "id": "rec_3",
+      "findingId": "f_demo_3",
+      "findingName": "Missing HttpOnly & Secure Flags on Session Cookies",
+      "issueSummary": "Session cookies are issued without the HttpOnly and Secure flags, making them accessible via JavaScript (enabling XSS-based theft) and transmittable over plaintext connections.",
+      "beginnerExplanation": "This vulnerability (CWE-614) allows attackers to exploit missing httponly & secure flags on session cookies. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Set HttpOnly, Secure, and SameSite=Strict on all authentication cookies.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": false,
+      "priority": "Medium"
+    }
+  ],
+  "coverageAndStatus": {
+    "toolAttribution": [
+      "SecWeb AI Engine (Claude)",
+      "Active HTTP Probe",
+      "Header Analyser"
+    ],
+    "latencyMs": 120,
+    "completionStatus": "Completed — AI-validated findings with CVSS scoring."
+  }
+}

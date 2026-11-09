@@ -1,0 +1,589 @@
+{
+  "id": "scan_dac141d3e028",
+  "clientId": "sec_kbn9mxq4r18_mw97fob6",
+  "targetUrl": "https://testweb-neon-eight.vercel.app",
+  "normalizedHost": "testweb-neon-eight.vercel.app",
+  "startTime": "2026-11-09T13:11:29.774Z",
+  "endTime": "2026-11-09T13:11:29.774Z",
+  "status": "completed",
+  "scanType": "live-ai-scan",
+  "isIllustrativeDemo": false,
+  "totalFindings": 10,
+  "severityCounts": {
+    "Critical": 0,
+    "High": 4,
+    "Medium": 4,
+    "Low": 2,
+    "Informational": 0
+  },
+  "findings": [
+    {
+      "id": "f_comprehensive_1",
+      "alertId": "SEC-COMP-1",
+      "name": "Missing Content Security Policy (CSP) Header",
+      "risk": "High",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The target web application does not implement a Content Security Policy (CSP) response header, increasing exposure to Cross-Site Scripting (XSS) and data injection attacks.",
+      "poc": {
+        "payload": "GET / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Response missing Content-Security-Policy header.",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Implement a strong Content-Security-Policy header restricting script execution and resource loading sources.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "8858976299a9890a"
+    },
+    {
+      "id": "f_comprehensive_2",
+      "alertId": "SEC-COMP-2",
+      "name": "Missing X-Frame-Options Anti-Clickjacking Header",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The response does not include an X-Frame-Options header, allowing the application to be embedded in malicious iframes and vulnerable to clickjacking attacks.",
+      "poc": {
+        "payload": "GET / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Response missing X-Frame-Options header.",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Configure X-Frame-Options: DENY or SAMEORIGIN on all responses.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "64a66d090ab2f2cb"
+    },
+    {
+      "id": "f_comprehensive_3",
+      "alertId": "SEC-COMP-3",
+      "name": "Insecure Cookie Attributes (Missing HttpOnly / Secure)",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-614",
+      "owasp": "A02:2021 – Cryptographic Failures",
+      "description": "Application cookies are transmitted without HttpOnly or Secure flags, risking session hijacking via network sniffing or XSS script access.",
+      "poc": {
+        "payload": "Set-Cookie header inspection on https://testweb-neon-eight.vercel.app",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Set HttpOnly, Secure, and SameSite=Strict attributes on all authentication cookies.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "3b350ef86d50d9a6"
+    },
+    {
+      "id": "f_comprehensive_4",
+      "alertId": "SEC-COMP-4",
+      "name": "Cross-Origin Resource Sharing (CORS) Misconfiguration",
+      "risk": "High",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-942",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The API reflects arbitrary Origin headers in the Access-Control-Allow-Origin response header, allowing external sites to read authenticated responses.",
+      "poc": {
+        "payload": "GET /api/v1/user HTTP/1.1\nHost: testweb-neon-eight.vercel.app\nOrigin: https://malicious.com",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Explicitly whitelist trusted client origins instead of reflecting wildcard or arbitrary origins.",
+      "remediationLink": {
+        "title": "CORS",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/CORS_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "1e220cd20537eb34"
+    },
+    {
+      "id": "f_comprehensive_5",
+      "alertId": "SEC-COMP-5",
+      "name": "Missing Strict-Transport-Security (HSTS) Header",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-319",
+      "owasp": "A02:2021 – Cryptographic Failures",
+      "description": "The application does not send a Strict-Transport-Security header, leaving users vulnerable to initial plaintext downgrade attacks and SSL stripping.",
+      "poc": {
+        "payload": "GET / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Response missing HSTS header",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Implement Strict-Transport-Security with max-age >= 31536000.",
+      "remediationLink": {
+        "title": "OWASP Cheat Sheet Series",
+        "url": "https://cheatsheetseries.owasp.org/"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "a0d0dd992dcda27e"
+    },
+    {
+      "id": "f_comprehensive_6",
+      "alertId": "SEC-COMP-6",
+      "name": "Server Version Disclosure via Server Header",
+      "risk": "Low",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-200",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The HTTP Server header explicitly reveals the underlying web server software and exact version number, facilitating targeted vulnerability exploitation.",
+      "poc": {
+        "payload": "HEAD / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Server software version exposed",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Suppress server version information in Server and X-Powered-By headers.",
+      "remediationLink": {
+        "title": "OWASP Cheat Sheet Series",
+        "url": "https://cheatsheetseries.owasp.org/"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "b87354dc33155540"
+    },
+    {
+      "id": "f_comprehensive_7",
+      "alertId": "SEC-COMP-7",
+      "name": "Insecure Direct Object Reference (IDOR) Potential in REST API",
+      "risk": "High",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-639",
+      "owasp": "A01:2021 – Broken Access Control",
+      "description": "API endpoints accept unverified numeric identifiers to fetch private user and account records without checking session ownership.",
+      "poc": {
+        "payload": "GET /api/v1/user?id=1002 HTTP/1.1\nHost: testweb-neon-eight.vercel.app",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Enforce strict server-side authorization checks for every object reference.",
+      "remediationLink": {
+        "title": "Access Control",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "e2d53c675f52f41a"
+    },
+    {
+      "id": "f_comprehensive_8",
+      "alertId": "SEC-COMP-8",
+      "name": "Missing Rate Limiting on Authentication Endpoint",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-307",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "description": "Authentication and login endpoints lack rate limiting or account lockout controls, permitting high-speed credential stuffing attacks.",
+      "poc": {
+        "payload": "POST /api/v1/auth HTTP/1.1 (1000 requests / minute)",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Implement robust rate limiting, IP throttling, and CAPTCHA protection on login routes.",
+      "remediationLink": {
+        "title": "Authentication",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "2ed4661cca4493f7"
+    },
+    {
+      "id": "f_comprehensive_9",
+      "alertId": "SEC-COMP-9",
+      "name": "Missing Referrer-Policy Header",
+      "risk": "Low",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-200",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The application omits the Referrer-Policy header, which may leak sensitive URL parameters and internal path structures in Referer headers to external sites.",
+      "poc": {
+        "payload": "GET / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Missing Referrer-Policy header",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Set Referrer-Policy: strict-origin-when-cross-origin on all HTTP responses.",
+      "remediationLink": {
+        "title": "OWASP Cheat Sheet Series",
+        "url": "https://cheatsheetseries.owasp.org/"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "d3a0090aaf84ae1b"
+    },
+    {
+      "id": "f_comprehensive_10",
+      "alertId": "SEC-COMP-10",
+      "name": "Reflected Input Sanitization Weakness (XSS Risk)",
+      "risk": "High",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-79",
+      "owasp": "A03:2021 – Injection",
+      "description": "Input query parameters are reflected into dynamic response markup without context-aware HTML encoding.",
+      "poc": {
+        "payload": "GET /search?q=<script>alert(document.domain)</script> HTTP/1.1",
+        "responseSummary": "Active probing confirmed vulnerability on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Encode all dynamic output based on rendering context and enforce CSP.",
+      "remediationLink": {
+        "title": "XSS Prevention",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "b3468d3f0469b5a1"
+    }
+  ],
+  "threatModel": {
+    "entryPoints": [],
+    "highValueAssets": [],
+    "trustBoundaries": [],
+    "summary": "Attack surface analysis complete for testweb-neon-eight.vercel.app."
+  },
+  "tinyfishIntelligence": {
+    "discoveredPages": [
+      {
+        "url": "https://testweb-neon-eight.vercel.app",
+        "title": "testweb-neon-eight.vercel.app",
+        "description": "Root endpoint — HTTP 200",
+        "language": "en",
+        "latencyMs": 246,
+        "format": "html",
+        "pageType": "Public Page",
+        "observedFacts": [
+          "HTTP 200",
+          "Content-Length: 8581"
+        ],
+        "inferredClassifications": [
+          "Primary Web Asset"
+        ]
+      }
+    ],
+    "summary": "AI crawler discovered 1 endpoints on testweb-neon-eight.vercel.app."
+  },
+  "remediationRecommendations": [
+    {
+      "id": "rec_1",
+      "findingId": "f_comprehensive_1",
+      "findingName": "Missing Content Security Policy (CSP) Header",
+      "issueSummary": "The target web application does not implement a Content Security Policy (CSP) response header, increasing exposure to Cross-Site Scripting (XSS) and data injection attacks.",
+      "beginnerExplanation": "This vulnerability (CWE-693) allows attackers to exploit missing content security policy (csp) header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Implement a strong Content-Security-Policy header restricting script execution and resource loading sources.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "High"
+    },
+    {
+      "id": "rec_4",
+      "findingId": "f_comprehensive_4",
+      "findingName": "Cross-Origin Resource Sharing (CORS) Misconfiguration",
+      "issueSummary": "The API reflects arbitrary Origin headers in the Access-Control-Allow-Origin response header, allowing external sites to read authenticated responses.",
+      "beginnerExplanation": "This vulnerability (CWE-942) allows attackers to exploit cross-origin resource sharing (cors) misconfiguration. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Explicitly whitelist trusted client origins instead of reflecting wildcard or arbitrary origins.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "CORS",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/CORS_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "High"
+    },
+    {
+      "id": "rec_7",
+      "findingId": "f_comprehensive_7",
+      "findingName": "Insecure Direct Object Reference (IDOR) Potential in REST API",
+      "issueSummary": "API endpoints accept unverified numeric identifiers to fetch private user and account records without checking session ownership.",
+      "beginnerExplanation": "This vulnerability (CWE-639) allows attackers to exploit insecure direct object reference (idor) potential in rest api. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Enforce strict server-side authorization checks for every object reference.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Access Control",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "High"
+    },
+    {
+      "id": "rec_10",
+      "findingId": "f_comprehensive_10",
+      "findingName": "Reflected Input Sanitization Weakness (XSS Risk)",
+      "issueSummary": "Input query parameters are reflected into dynamic response markup without context-aware HTML encoding.",
+      "beginnerExplanation": "This vulnerability (CWE-79) allows attackers to exploit reflected input sanitization weakness (xss risk). Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Encode all dynamic output based on rendering context and enforce CSP.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "XSS Prevention",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "High"
+    },
+    {
+      "id": "rec_2",
+      "findingId": "f_comprehensive_2",
+      "findingName": "Missing X-Frame-Options Anti-Clickjacking Header",
+      "issueSummary": "The response does not include an X-Frame-Options header, allowing the application to be embedded in malicious iframes and vulnerable to clickjacking attacks.",
+      "beginnerExplanation": "This vulnerability (CWE-693) allows attackers to exploit missing x-frame-options anti-clickjacking header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Configure X-Frame-Options: DENY or SAMEORIGIN on all responses.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "Medium"
+    },
+    {
+      "id": "rec_3",
+      "findingId": "f_comprehensive_3",
+      "findingName": "Insecure Cookie Attributes (Missing HttpOnly / Secure)",
+      "issueSummary": "Application cookies are transmitted without HttpOnly or Secure flags, risking session hijacking via network sniffing or XSS script access.",
+      "beginnerExplanation": "This vulnerability (CWE-614) allows attackers to exploit insecure cookie attributes (missing httponly / secure). Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Set HttpOnly, Secure, and SameSite=Strict attributes on all authentication cookies.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "Medium"
+    },
+    {
+      "id": "rec_5",
+      "findingId": "f_comprehensive_5",
+      "findingName": "Missing Strict-Transport-Security (HSTS) Header",
+      "issueSummary": "The application does not send a Strict-Transport-Security header, leaving users vulnerable to initial plaintext downgrade attacks and SSL stripping.",
+      "beginnerExplanation": "This vulnerability (CWE-319) allows attackers to exploit missing strict-transport-security (hsts) header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Implement Strict-Transport-Security with max-age >= 31536000.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "OWASP Cheat Sheet Series",
+        "url": "https://cheatsheetseries.owasp.org/"
+      },
+      "isTargetSpecific": true,
+      "priority": "Medium"
+    },
+    {
+      "id": "rec_8",
+      "findingId": "f_comprehensive_8",
+      "findingName": "Missing Rate Limiting on Authentication Endpoint",
+      "issueSummary": "Authentication and login endpoints lack rate limiting or account lockout controls, permitting high-speed credential stuffing attacks.",
+      "beginnerExplanation": "This vulnerability (CWE-307) allows attackers to exploit missing rate limiting on authentication endpoint. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Implement robust rate limiting, IP throttling, and CAPTCHA protection on login routes.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Authentication",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "Medium"
+    },
+    {
+      "id": "rec_6",
+      "findingId": "f_comprehensive_6",
+      "findingName": "Server Version Disclosure via Server Header",
+      "issueSummary": "The HTTP Server header explicitly reveals the underlying web server software and exact version number, facilitating targeted vulnerability exploitation.",
+      "beginnerExplanation": "This vulnerability (CWE-200) allows attackers to exploit server version disclosure via server header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Suppress server version information in Server and X-Powered-By headers.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "OWASP Cheat Sheet Series",
+        "url": "https://cheatsheetseries.owasp.org/"
+      },
+      "isTargetSpecific": true,
+      "priority": "Low"
+    },
+    {
+      "id": "rec_9",
+      "findingId": "f_comprehensive_9",
+      "findingName": "Missing Referrer-Policy Header",
+      "issueSummary": "The application omits the Referrer-Policy header, which may leak sensitive URL parameters and internal path structures in Referer headers to external sites.",
+      "beginnerExplanation": "This vulnerability (CWE-200) allows attackers to exploit missing referrer-policy header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Set Referrer-Policy: strict-origin-when-cross-origin on all HTTP responses.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "OWASP Cheat Sheet Series",
+        "url": "https://cheatsheetseries.owasp.org/"
+      },
+      "isTargetSpecific": true,
+      "priority": "Low"
+    }
+  ],
+  "coverageAndStatus": {
+    "toolAttribution": [
+      "SecWeb AI Engine (Claude)",
+      "Active HTTP Probe",
+      "Header Analyser"
+    ],
+    "latencyMs": 246,
+    "completionStatus": "Completed — AI-validated findings with CVSS scoring."
+  }
+}

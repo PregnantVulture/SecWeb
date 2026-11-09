@@ -2,101 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import SecWebVerification from './SecWebVerification';
-
-interface Finding {
-  id: string;
-  alertId: string;
-  name: string;
-  risk: 'High' | 'Medium' | 'Low' | 'Informational';
-  confidence: 'High' | 'Medium' | 'Low';
-  url: string;
-  param?: string;
-  cweId?: string;
-  description?: string;
-  evidence?: string;
-  solution?: string;
-  remediationLink?: {
-    title: string;
-    url: string;
-  };
-  tool: 'SecWeb Engine';
-  fingerprint: string;
-}
-
-interface DiscoveredPage {
-  url: string;
-  title: string;
-  description: string;
-  language: string;
-  latencyMs: number;
-  format: string;
-  pageType: 'Public Page' | 'Login / Auth' | 'Admin Portal' | 'API Endpoint' | 'Static Asset';
-  observedFacts: string[];
-  inferredClassifications: string[];
-}
-
-interface RemediationRecommendation {
-  id: string;
-  findingId: string;
-  findingName: string;
-  issueSummary: string;
-  beginnerExplanation: string;
-  practicalNextSteps: string[];
-  remediationLink?: {
-    title: string;
-    url: string;
-  };
-  isTargetSpecific: boolean;
-  priority: 'High' | 'Medium' | 'Low' | 'Informational';
-}
-
-interface ScanRecord {
-  id: string;
-  targetUrl: string;
-  normalizedHost: string;
-  startTime: string;
-  endTime?: string;
-  status: 'completed' | 'partial' | 'failed' | 'timed_out';
-  scanType: 'live-unified-scan' | 'demo-illustrative-scan';
-  isIllustrativeDemo: boolean;
-  totalFindings: number;
-  severityCounts: {
-    High: number;
-    Medium: number;
-    Low: number;
-    Informational: number;
-  };
-  findings: Finding[];
-  tinyfishIntelligence: {
-    discoveredPages: DiscoveredPage[];
-    summary: string;
-  };
-  remediationRecommendations: RemediationRecommendation[];
-  coverageAndStatus: {
-    toolAttribution: string[];
-    latencyMs: number;
-    completionStatus: string;
-  };
-  error?: string;
-}
-
-interface ComparisonResult {
-  olderScanId: string;
-  newerScanId: string;
-  targetHost: string;
-  summary: {
-    newCount: number;
-    persistentCount: number;
-    resolvedCount: number;
-  };
-  newFindings: Finding[];
-  persistentFindings: { older: Finding; newer: Finding; severityChanged: boolean }[];
-  resolvedFindings: Finding[];
-}
+import ScanStream from './ScanStream';
+import type { ScanRecord, ComparisonResult } from '@/lib/types';
 
 export default function UnifiedScanView() {
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [targetUrl, setTargetUrl] = useState('');
   const [isDemoActive, setIsDemoActive] = useState(false);
   const [olderId, setOlderId] = useState('');
@@ -105,14 +17,14 @@ export default function UnifiedScanView() {
   const [error, setError] = useState<string | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [activeScan, setActiveScan] = useState<ScanRecord | null>(null);
+  const [scanDepth, setScanDepth] = useState<'quick' | 'comprehensive'>('comprehensive');
 
   const [tabKey, setTabKey] = useState(0);
-
   const switchTab = (tab: typeof activeTab) => {
     setActiveTab(tab);
     setTabKey(k => k + 1);
   };
-  const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'intelligence' | 'remediation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'threatmodel' | 'findings' | 'intelligence' | 'remediation'>('overview');
   const [selectedFindingId, setSelectedFindingId] = useState<string>('');
   const [findingSeverityFilter, setFindingSeverityFilter] = useState<string>('all');
   const [findingSearchQuery, setFindingSearchQuery] = useState<string>('');
@@ -153,46 +65,30 @@ export default function UnifiedScanView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleScanWebsite = async (e: React.FormEvent) => {
+  const handleStartScan = (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetUrl.trim()) return;
-
-    setLoading(true);
     setError(null);
     setComparison(null);
+    setIsStreaming(true);
+  };
 
-    try {
-      const headersObj: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...getClientIdHeaders(),
-      };
-      const res = await fetch('/api/scans', {
-        method: 'POST',
-        headers: headersObj,
-        body: JSON.stringify({ targetUrl, isDemo: isDemoActive }),
-      });
-      const data = await res.json() as { error?: string; requiresVerification?: boolean; scan?: ScanRecord };
-      if (!res.ok) {
-        if (data.requiresVerification) {
-          setShowVerificationModal(true);
-        }
-        throw new Error(data.error || 'Failed to run security scan');
-      }
-
-      if (data.scan) {
-        setActiveScan(data.scan);
-        if (data.scan.findings.length > 0) {
-          setSelectedFindingId(data.scan.findings[0].id);
-        }
-      }
-      setShowVerificationModal(false);
-      await fetchScans();
-    } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj.message || 'An unexpected error occurred');
-    } finally {
-      setLoading(false);
+  const handleScanComplete = async (scan: ScanRecord) => {
+    setIsStreaming(false);
+    setActiveScan(scan);
+    if (scan.findings.length > 0) {
+      setSelectedFindingId(scan.findings[0].id);
     }
+    setShowVerificationModal(false);
+    await fetchScans();
+  };
+
+  const handleStreamError = (errMsg: string) => {
+    setIsStreaming(false);
+    if (errMsg.includes('verification required')) {
+      setShowVerificationModal(true);
+    }
+    setError(errMsg);
   };
 
   const handleDemoClick = () => {
@@ -258,10 +154,10 @@ export default function UnifiedScanView() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[11px] font-mono tracking-widest text-emerald-400 uppercase">SecWeb Intelligence & Scanner</span>
+              <span className="text-[11px] font-mono tracking-widest text-emerald-400 uppercase">SecWeb AI Pentesting Engine (Strix-Powered)</span>
             </div>
             <h2 className="text-xl font-black text-zinc-100 tracking-tight mt-0.5">
-              Unified Vulnerability Assessment
+              Autonomous Vulnerability Assessment & PoC Validation
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -325,10 +221,10 @@ export default function UnifiedScanView() {
                       <td className="px-3 py-2 truncate max-w-[180px]">{s.normalizedHost}</td>
                       <td className="px-3 py-2">
                         <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${s.isIllustrativeDemo ? 'bg-blue-950 text-blue-300' : 'bg-emerald-950 text-emerald-300'}`}>
-                          {s.isIllustrativeDemo ? 'Demo' : 'Live'}
+                          {s.isIllustrativeDemo ? 'Demo' : 'AI Live'}
                         </span>
                       </td>
-                      <td className="px-3 py-2 font-semibold">H:{s.severityCounts.High} M:{s.severityCounts.Medium}</td>
+                      <td className="px-3 py-2 font-semibold">C:{s.severityCounts.Critical} H:{s.severityCounts.High} M:{s.severityCounts.Medium}</td>
                       <td className="px-3 py-2 text-zinc-400">{new Date(s.startTime).toLocaleDateString()}</td>
                       <td className="px-3 py-2">
                         <button onClick={() => handleSelectScan(s)} className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 text-white rounded hover:bg-emerald-700">
@@ -375,23 +271,51 @@ export default function UnifiedScanView() {
         )}
 
         {/* Workflow steps hint & form */}
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-zinc-400 font-mono">
-            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">01</span> Validate Target
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-zinc-400 font-mono">
+              <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+                <span className="text-emerald-500 font-bold">01</span> Recon & Crawl
+              </div>
+              <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+                <span className="text-emerald-500 font-bold">02</span> Threat Model
+              </div>
+              <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+                <span className="text-emerald-500 font-bold">03</span> AI Exploit Probe
+              </div>
+              <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
+                <span className="text-emerald-500 font-bold">04</span> CVSS & PoC Report
+              </div>
             </div>
-            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">02</span> Surface Discovery
-            </div>
-            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">03</span> Vulnerability Analysis
-            </div>
-            <div className="bg-zinc-950/60 p-2 rounded border border-zinc-800 flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">04</span> Verified Report
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-zinc-400 uppercase">Scan Depth:</span>
+              <button
+                type="button"
+                onClick={() => setScanDepth('quick')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  scanDepth === 'quick'
+                    ? 'bg-emerald-950 text-emerald-300 border-emerald-500'
+                    : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                }`}
+              >
+                Quick
+              </button>
+              <button
+                type="button"
+                onClick={() => setScanDepth('comprehensive')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  scanDepth === 'comprehensive'
+                    ? 'bg-purple-950 text-purple-300 border-purple-500'
+                    : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                }`}
+              >
+                Deep Comprehensive (OWASP Top 10)
+              </button>
             </div>
           </div>
 
-          <form onSubmit={handleScanWebsite} className="flex flex-col sm:flex-row gap-3 pt-1">
+          <form onSubmit={handleStartScan} className="flex flex-col sm:flex-row gap-3 pt-1">
             <input
               type="text"
               value={targetUrl}
@@ -407,33 +331,49 @@ export default function UnifiedScanView() {
             />
             <button
               type="submit"
-              disabled={loading}
+              disabled={isStreaming}
               className={`px-8 py-3 text-sm font-semibold text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 ${
                 isDemoActive
                   ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                  : scanDepth === 'comprehensive'
+                  ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
                   : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
               }`}
             >
-              {loading ? (
+              {isStreaming ? (
                 <>
                   <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Running Pipeline...
+                  Running AI Pentest...
                 </>
               ) : isDemoActive ? (
-                'Run Demo Scan'
+                'Run Demo AI Scan'
+              ) : scanDepth === 'comprehensive' ? (
+                'Start Deep Comprehensive Scan'
               ) : (
-                'Scan Website'
+                'Start Quick AI Scan'
               )}
             </button>
           </form>
         </div>
       </div>
 
+      {/* Live Stream View when scanning */}
+      {isStreaming && (
+        <ScanStream
+          targetUrl={targetUrl}
+          isDemo={isDemoActive}
+          scanDepth={scanDepth}
+          onScanComplete={handleScanComplete}
+          onError={handleStreamError}
+          onCancel={() => setIsStreaming(false)}
+        />
+      )}
+
       {/* Redesigned Dashboard Report Interface */}
-      {activeScan ? (
+      {!isStreaming && activeScan ? (
         <div className="bg-zinc-900/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/40 overflow-hidden space-y-6 animate-fade-in">
           {/* Compact Scan Header Bar */}
           <div className="p-6 bg-zinc-950/70 border-b border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -448,7 +388,7 @@ export default function UnifiedScanView() {
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-300 rounded-full border border-emerald-800">
-                    Live Scan Result
+                    AI Autonomous Scan
                   </span>
                 )}
                 <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">
@@ -459,21 +399,25 @@ export default function UnifiedScanView() {
                 {activeScan.targetUrl}
               </h3>
               <p className="text-xs text-zinc-400">
-                Completed on {new Date(activeScan.startTime).toLocaleString()} • {activeScan.coverageAndStatus.latencyMs}ms pipeline latency
+                Completed on {new Date(activeScan.startTime).toLocaleString()} • {activeScan.coverageAndStatus.latencyMs}ms probe latency
               </p>
             </div>
 
             {/* Severity Pill Summary */}
             <div className="flex items-center gap-2">
-              <div className="px-3.5 py-2 bg-red-950/50 border border-red-900/60 rounded-xl text-center min-w-[70px]">
+              <div className="px-3 py-2 bg-purple-950/50 border border-purple-900/60 rounded-xl text-center min-w-[65px]">
+                <span className="text-[10px] text-purple-400 block font-bold uppercase">Crit</span>
+                <span className="text-base font-black text-purple-300">{activeScan.severityCounts.Critical}</span>
+              </div>
+              <div className="px-3 py-2 bg-red-950/50 border border-red-900/60 rounded-xl text-center min-w-[65px]">
                 <span className="text-[10px] text-red-400 block font-bold uppercase">High</span>
                 <span className="text-base font-black text-red-300">{activeScan.severityCounts.High}</span>
               </div>
-              <div className="px-3.5 py-2 bg-amber-950/50 border border-amber-900/60 rounded-xl text-center min-w-[70px]">
-                <span className="text-[10px] text-amber-400 block font-bold uppercase">Medium</span>
+              <div className="px-3 py-2 bg-amber-950/50 border border-amber-900/60 rounded-xl text-center min-w-[65px]">
+                <span className="text-[10px] text-amber-400 block font-bold uppercase">Med</span>
                 <span className="text-base font-black text-amber-300">{activeScan.severityCounts.Medium}</span>
               </div>
-              <div className="px-3.5 py-2 bg-zinc-800/80 border border-zinc-700/60 rounded-xl text-center min-w-[70px]">
+              <div className="px-3.5 py-2 bg-zinc-800/80 border border-zinc-700/60 rounded-xl text-center min-w-[65px]">
                 <span className="text-[10px] text-zinc-400 block font-bold uppercase">Total</span>
                 <span className="text-base font-black text-zinc-100">{activeScan.totalFindings}</span>
               </div>
@@ -493,6 +437,16 @@ export default function UnifiedScanView() {
               Overview & Status
             </button>
             <button
+              onClick={() => switchTab('threatmodel')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'threatmodel'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              Attack Surface & Threat Model
+            </button>
+            <button
               onClick={() => switchTab('findings')}
               className={`px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'findings'
@@ -500,7 +454,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Security Findings ({activeScan.findings.length})
+              Vulnerabilities & PoC ({activeScan.findings.length})
             </button>
             <button
               onClick={() => switchTab('intelligence')}
@@ -510,7 +464,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Website Intelligence ({activeScan.tinyfishIntelligence.discoveredPages.length})
+              Discovered Assets ({activeScan.tinyfishIntelligence.discoveredPages.length})
             </button>
             <button
               onClick={() => switchTab('remediation')}
@@ -520,7 +474,7 @@ export default function UnifiedScanView() {
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Fixes & Recommendations ({activeScan.remediationRecommendations.length})
+              Fixes & Patches ({activeScan.remediationRecommendations.length})
             </button>
           </div>
 
@@ -533,35 +487,35 @@ export default function UnifiedScanView() {
                   <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
                     <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Execution Engine</span>
                     <div className="text-sm font-bold text-zinc-200">{activeScan.coverageAndStatus.toolAttribution.join(' + ')}</div>
-                    <p className="text-xs text-zinc-500">Combined surface intelligence crawler and core vulnerability scanner.</p>
+                    <p className="text-xs text-zinc-500">Autonomous Claude AI agent driver with active HTTP probe validation.</p>
                   </div>
                   <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
                     <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Surface Mapped</span>
-                    <div className="text-sm font-bold text-zinc-200">{activeScan.tinyfishIntelligence.discoveredPages.length} Public Endpoints</div>
-                    <p className="text-xs text-zinc-500">Discovered during active surface intelligence phase.</p>
+                    <div className="text-sm font-bold text-zinc-200">{activeScan.tinyfishIntelligence.discoveredPages.length} Endpoints & APIs</div>
+                    <p className="text-xs text-zinc-500">Discovered during active reconnaissance crawl.</p>
                   </div>
-                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
                     <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Risk Assessment</span>
                     <div className="text-sm font-bold text-zinc-200">
-                      {activeScan.severityCounts.High > 0 ? 'High Risk Action Required' : 'Posture Secure'}
+                      {activeScan.severityCounts.Critical > 0 || activeScan.severityCounts.High > 0 ? 'High Risk Action Required' : 'Posture Secure'}
                     </div>
-                    <p className="text-xs text-zinc-500">{activeScan.totalFindings} total security observations recorded.</p>
+                    <p className="text-xs text-zinc-500">{activeScan.totalFindings} CVSS-scored vulnerabilities recorded.</p>
                   </div>
                 </div>
 
                 {/* Top Critical Findings Quick Preview */}
                 <div className="space-y-3 pt-2">
-                  <h4 className="text-sm font-bold text-zinc-200">Most Critical Findings Overview</h4>
+                  <h4 className="text-sm font-bold text-zinc-200">Most Critical Vulnerabilities</h4>
                   {activeScan.findings.length === 0 ? (
                     <p className="text-xs text-zinc-500 italic p-4 bg-zinc-950/40 rounded-xl">No security findings reported.</p>
                   ) : (
                     <div className="space-y-2">
-                      {activeScan.findings.slice(0, 2).map(alert => (
+                      {activeScan.findings.slice(0, 3).map(alert => (
                         <div key={alert.id} className="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800 flex items-center justify-between gap-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${alert.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
-                                {alert.risk} Risk
+                              <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${alert.risk === 'Critical' ? 'bg-purple-950 text-purple-300' : alert.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                                {alert.risk} {alert.cvss ? `(CVSS ${alert.cvss.baseScore})` : ''}
                               </span>
                               <span className="text-xs font-bold text-zinc-200">{alert.name}</span>
                             </div>
@@ -571,7 +525,7 @@ export default function UnifiedScanView() {
                             onClick={() => { setActiveTab('findings'); setSelectedFindingId(alert.id); }}
                             className="px-3 py-1.5 text-xs font-semibold bg-zinc-800 text-zinc-200 rounded-lg hover:bg-zinc-700 shrink-0"
                           >
-                            Inspect Details →
+                            Inspect PoC →
                           </button>
                         </div>
                       ))}
@@ -581,7 +535,53 @@ export default function UnifiedScanView() {
               </div>
             )}
 
-            {/* 2. SECURITY FINDINGS TAB (Master-Detail Layout on Desktop) */}
+            {/* 2. ATTACK SURFACE & THREAT MODEL TAB */}
+            {activeTab === 'threatmodel' && (
+              <div className="space-y-6">
+                <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-2">
+                  <span className="text-xs font-mono text-emerald-400 uppercase font-bold tracking-wider">Strix Threat Model Summary</span>
+                  <p className="text-xs text-zinc-300 leading-relaxed">{activeScan.threatModel?.summary || 'Attack surface mapped successfully.'}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Entry Points */}
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-3">
+                    <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Entry Points ({activeScan.threatModel?.entryPoints.length ?? 0})</h5>
+                    {activeScan.threatModel?.entryPoints.map((ep, idx) => (
+                      <div key={idx} className="p-3 bg-zinc-900/60 rounded-lg border border-zinc-800 space-y-1">
+                        <span className="text-xs font-bold text-zinc-200 block">{ep.label}</span>
+                        {ep.url && <span className="text-[10px] font-mono text-emerald-300 truncate block">{ep.url}</span>}
+                        <p className="text-[11px] text-zinc-400">{ep.description}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* High Value Assets */}
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-3">
+                    <h5 className="text-xs font-bold text-amber-400 uppercase tracking-wider">High-Value Assets ({activeScan.threatModel?.highValueAssets.length ?? 0})</h5>
+                    {activeScan.threatModel?.highValueAssets.map((ha, idx) => (
+                      <div key={idx} className="p-3 bg-zinc-900/60 rounded-lg border border-zinc-800 space-y-1">
+                        <span className="text-xs font-bold text-zinc-200 block">{ha.label}</span>
+                        <p className="text-[11px] text-zinc-400">{ha.description}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Trust Boundaries */}
+                  <div className="p-5 bg-zinc-950/60 rounded-xl border border-zinc-800 space-y-3">
+                    <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Trust Boundaries ({activeScan.threatModel?.trustBoundaries.length ?? 0})</h5>
+                    {activeScan.threatModel?.trustBoundaries.map((tb, idx) => (
+                      <div key={idx} className="p-3 bg-zinc-900/60 rounded-lg border border-zinc-800 space-y-1">
+                        <span className="text-xs font-bold text-zinc-200 block">{tb.label}</span>
+                        <p className="text-[11px] text-zinc-400">{tb.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. FINDINGS & PoC TAB */}
             {activeTab === 'findings' && (
               <div className="space-y-4">
                 {/* Filters */}
@@ -600,6 +600,7 @@ export default function UnifiedScanView() {
                       className="px-3 py-2 text-xs bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-200"
                     >
                       <option value="all">All Severities</option>
+                      <option value="critical">Critical</option>
                       <option value="high">High</option>
                       <option value="medium">Medium</option>
                       <option value="low">Low</option>
@@ -629,8 +630,8 @@ export default function UnifiedScanView() {
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className={`px-2 py-0.5 text-[9px] font-bold rounded ${alert.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
-                                {alert.risk} Risk
+                              <span className={`px-2 py-0.5 text-[9px] font-bold rounded ${alert.risk === 'Critical' ? 'bg-purple-950 text-purple-300' : alert.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                                {alert.risk} {alert.cvss ? `(CVSS ${alert.cvss.baseScore})` : ''}
                               </span>
                               <span className="text-[10px] font-mono text-zinc-400">{alert.alertId}</span>
                             </div>
@@ -641,19 +642,19 @@ export default function UnifiedScanView() {
                       })}
                     </div>
 
-                    {/* Right Details Panel */}
+                    {/* Right Details Panel with PoC & CVSS */}
                     <div className="lg:col-span-7 bg-zinc-950/80 p-6 rounded-2xl border border-zinc-800 space-y-4">
                       {selectedFinding ? (
                         <>
                           <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                             <div>
                               <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
-                                {selectedFinding.tool} • {selectedFinding.alertId}
+                                {selectedFinding.tool} • {selectedFinding.cweId || selectedFinding.alertId} {selectedFinding.owasp ? `• ${selectedFinding.owasp}` : ''}
                               </span>
                               <h4 className="text-base font-bold text-zinc-100 mt-0.5">{selectedFinding.name}</h4>
                             </div>
-                            <span className={`px-2.5 py-1 text-xs font-bold rounded ${selectedFinding.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
-                              {selectedFinding.risk} Risk ({selectedFinding.confidence} Confidence)
+                            <span className={`px-2.5 py-1 text-xs font-bold rounded ${selectedFinding.risk === 'Critical' ? 'bg-purple-950 text-purple-300' : selectedFinding.risk === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                              {selectedFinding.risk} {selectedFinding.cvss ? `(CVSS ${selectedFinding.cvss.baseScore})` : ''}
                             </span>
                           </div>
 
@@ -663,17 +664,37 @@ export default function UnifiedScanView() {
                               <span className="font-mono bg-zinc-900 p-2 rounded block text-emerald-300 truncate">{selectedFinding.url}</span>
                             </div>
 
+                            {selectedFinding.cvss && (
+                              <div>
+                                <strong className="text-zinc-400 block mb-1">CVSS v3.1 Scoring:</strong>
+                                <div className="p-3 bg-zinc-900/90 rounded border border-zinc-800 space-y-1 font-mono text-[11px]">
+                                  <div className="text-emerald-400 font-bold">Base Score: {selectedFinding.cvss.baseScore} / 10.0</div>
+                                  <div className="text-zinc-400 truncate">Vector: {selectedFinding.cvss.vectorString}</div>
+                                </div>
+                              </div>
+                            )}
+
                             <div>
-                              <strong className="text-zinc-400 block mb-1">Description & Risk Analysis:</strong>
+                              <strong className="text-zinc-400 block mb-1">Technical Description:</strong>
                               <p className="text-zinc-300 leading-relaxed">{selectedFinding.description}</p>
                             </div>
 
-                            {selectedFinding.evidence && (
+                            {selectedFinding.poc && (
                               <div>
-                                <strong className="text-zinc-400 block mb-1">Observed Evidence:</strong>
-                                <div className="font-mono bg-zinc-900/90 p-2.5 rounded border border-zinc-800 text-zinc-200 text-[11px]">
-                                  {selectedFinding.evidence}
+                                <div className="flex items-center justify-between mb-1">
+                                  <strong className="text-zinc-400">Proof-of-Concept (PoC) Exploit Payload:</strong>
+                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-300 rounded border border-emerald-900">
+                                    Validated Exploit
+                                  </span>
                                 </div>
+                                <div className="font-mono bg-zinc-900 p-3 rounded-xl border border-zinc-800 text-emerald-300 text-[11px] whitespace-pre-wrap overflow-x-auto">
+                                  {selectedFinding.poc.payload}
+                                </div>
+                                {selectedFinding.poc.responseSummary && (
+                                  <div className="mt-2 text-[11px] text-zinc-400">
+                                    <strong className="text-zinc-500">Observed Response:</strong> {selectedFinding.poc.responseSummary}
+                                  </div>
+                                )}
                               </div>
                             )}
 
@@ -707,11 +728,11 @@ export default function UnifiedScanView() {
               </div>
             )}
 
-            {/* 3. WEBSITE INTELLIGENCE TAB */}
+            {/* 4. DISCOVERED ASSETS TAB */}
             {activeTab === 'intelligence' && (
               <div className="space-y-4">
                 <p className="text-xs text-zinc-400">
-                  {activeScan.tinyfishIntelligence.summary} These entries represent website observations and asset discovery, not verified vulnerabilities.
+                  {activeScan.tinyfishIntelligence.summary} These entries represent assets discovered during active reconnaissance.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeScan.tinyfishIntelligence.discoveredPages.map((page, idx) => (
@@ -736,7 +757,7 @@ export default function UnifiedScanView() {
               </div>
             )}
 
-            {/* 4. FIXES & RECOMMENDATIONS TAB */}
+            {/* 5. FIXES & RECOMMENDATIONS TAB */}
             {activeTab === 'remediation' && (
               <div className="space-y-4">
                 <p className="text-xs text-zinc-400">
@@ -751,7 +772,7 @@ export default function UnifiedScanView() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-zinc-200">{rec.findingName}</span>
-                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${rec.priority === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${rec.priority === 'Critical' ? 'bg-purple-950 text-purple-300' : rec.priority === 'High' ? 'bg-red-950 text-red-300' : 'bg-amber-950 text-amber-300'}`}>
                               {rec.priority} Priority
                             </span>
                           </div>
@@ -788,14 +809,14 @@ export default function UnifiedScanView() {
             )}
           </div>
         </div>
-      ) : (
+      ) : !isStreaming && (
         <div className="bg-zinc-900/95 p-12 rounded-2xl shadow-xl border border-zinc-800 text-center space-y-4">
-          <div className="w-12 h-12 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-xl border border-emerald-800 font-bold">
-            SEC
+          <div className="w-12 h-12 bg-emerald-950 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-xl border border-emerald-800 font-bold font-mono">
+            AI
           </div>
           <h3 className="text-lg font-bold text-zinc-100">No Active Scan Report Loaded</h3>
           <p className="text-xs text-zinc-400 max-w-md mx-auto">
-            Enter a target URL above and click <span className="text-emerald-400 font-semibold">Scan Website</span>, or load the <span className="text-blue-400 font-semibold">Demo Scan</span> to explore the fully redesigned SecWeb dashboard.
+            Enter a target URL above and click <span className="text-emerald-400 font-semibold">Start AI Scan</span>, or load the <span className="text-blue-400 font-semibold">Demo AI Scan</span> to explore the Strix-powered SecWeb dashboard.
           </p>
         </div>
       )}

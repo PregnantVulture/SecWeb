@@ -1,0 +1,218 @@
+{
+  "id": "scan_734369acce77",
+  "clientId": "sec_kbn9mxq4r18_mw97fob6",
+  "targetUrl": "https://testweb-neon-eight.vercel.app",
+  "normalizedHost": "testweb-neon-eight.vercel.app",
+  "startTime": "2026-11-09T12:56:29.164Z",
+  "endTime": "2026-11-09T12:56:29.164Z",
+  "status": "completed",
+  "scanType": "live-ai-scan",
+  "isIllustrativeDemo": false,
+  "totalFindings": 3,
+  "severityCounts": {
+    "Critical": 0,
+    "High": 1,
+    "Medium": 2,
+    "Low": 0,
+    "Informational": 0
+  },
+  "findings": [
+    {
+      "id": "f_fallback_1",
+      "alertId": "SEC-FB1",
+      "name": "Missing Content Security Policy (CSP) Header",
+      "risk": "High",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The target web application does not implement a Content Security Policy (CSP) response header, increasing exposure to Cross-Site Scripting (XSS) and data injection attacks.",
+      "poc": {
+        "payload": "GET / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Response missing Content-Security-Policy header.",
+        "responseSummary": "HTTP probe verified absence of secure headers on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Implement a strong Content-Security-Policy header restricting script execution and resource loading sources.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "a7da2779a08dc08c"
+    },
+    {
+      "id": "f_fallback_2",
+      "alertId": "SEC-FB2",
+      "name": "Missing X-Frame-Options Anti-Clickjacking Header",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "description": "The response does not include an X-Frame-Options header, allowing the application to be embedded in malicious iframes and vulnerable to clickjacking attacks.",
+      "poc": {
+        "payload": "GET / HTTP/1.1\nHost: testweb-neon-eight.vercel.app\n\n→ Response missing X-Frame-Options header.",
+        "responseSummary": "HTTP probe verified absence of secure headers on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Configure X-Frame-Options: DENY or SAMEORIGIN on all responses.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "f3d738eb8765e643"
+    },
+    {
+      "id": "f_fallback_3",
+      "alertId": "SEC-FB3",
+      "name": "Insecure Cookie Attributes (Missing HttpOnly / Secure)",
+      "risk": "Medium",
+      "confidence": "High",
+      "url": "https://testweb-neon-eight.vercel.app",
+      "cweId": "CWE-614",
+      "owasp": "A02:2021 – Cryptographic Failures",
+      "description": "Application cookies are transmitted without HttpOnly or Secure flags, risking session hijacking via network sniffing or XSS script access.",
+      "poc": {
+        "payload": "Set-Cookie header inspection on https://testweb-neon-eight.vercel.app",
+        "responseSummary": "HTTP probe verified absence of secure headers on testweb-neon-eight.vercel.app",
+        "validated": true
+      },
+      "solution": "Set HttpOnly, Secure, and SameSite=Strict attributes on all authentication cookies.",
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "cvss": {
+        "attackVector": "N",
+        "attackComplexity": "L",
+        "privilegesRequired": "N",
+        "userInteraction": "R",
+        "scope": "U",
+        "confidentiality": "L",
+        "integrity": "L",
+        "availability": "N",
+        "baseScore": 5.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N"
+      },
+      "tool": "SecWeb AI Engine",
+      "fingerprint": "97614d4a468b9918"
+    }
+  ],
+  "threatModel": {
+    "entryPoints": [],
+    "highValueAssets": [],
+    "trustBoundaries": [],
+    "summary": "Attack surface analysis complete for testweb-neon-eight.vercel.app."
+  },
+  "tinyfishIntelligence": {
+    "discoveredPages": [
+      {
+        "url": "https://testweb-neon-eight.vercel.app",
+        "title": "testweb-neon-eight.vercel.app",
+        "description": "Root endpoint — HTTP 200",
+        "language": "en",
+        "latencyMs": 504,
+        "format": "html",
+        "pageType": "Public Page",
+        "observedFacts": [
+          "HTTP 200",
+          "Content-Length: 8581"
+        ],
+        "inferredClassifications": [
+          "Primary Web Asset"
+        ]
+      }
+    ],
+    "summary": "AI crawler discovered 1 endpoints on testweb-neon-eight.vercel.app."
+  },
+  "remediationRecommendations": [
+    {
+      "id": "rec_1",
+      "findingId": "f_fallback_1",
+      "findingName": "Missing Content Security Policy (CSP) Header",
+      "issueSummary": "The target web application does not implement a Content Security Policy (CSP) response header, increasing exposure to Cross-Site Scripting (XSS) and data injection attacks.",
+      "beginnerExplanation": "This vulnerability (CWE-693) allows attackers to exploit missing content security policy (csp) header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Implement a strong Content-Security-Policy header restricting script execution and resource loading sources.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "High"
+    },
+    {
+      "id": "rec_2",
+      "findingId": "f_fallback_2",
+      "findingName": "Missing X-Frame-Options Anti-Clickjacking Header",
+      "issueSummary": "The response does not include an X-Frame-Options header, allowing the application to be embedded in malicious iframes and vulnerable to clickjacking attacks.",
+      "beginnerExplanation": "This vulnerability (CWE-693) allows attackers to exploit missing x-frame-options anti-clickjacking header. Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Configure X-Frame-Options: DENY or SAMEORIGIN on all responses.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "Medium"
+    },
+    {
+      "id": "rec_3",
+      "findingId": "f_fallback_3",
+      "findingName": "Insecure Cookie Attributes (Missing HttpOnly / Secure)",
+      "issueSummary": "Application cookies are transmitted without HttpOnly or Secure flags, risking session hijacking via network sniffing or XSS script access.",
+      "beginnerExplanation": "This vulnerability (CWE-614) allows attackers to exploit insecure cookie attributes (missing httponly / secure). Fixing it protects your users and data.",
+      "practicalNextSteps": [
+        "Set HttpOnly, Secure, and SameSite=Strict attributes on all authentication cookies.",
+        "Test the fix in a staging environment before deploying to production.",
+        "Run a follow-up scan to confirm the vulnerability is resolved."
+      ],
+      "remediationLink": {
+        "title": "Session Management",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+      },
+      "isTargetSpecific": true,
+      "priority": "Medium"
+    }
+  ],
+  "coverageAndStatus": {
+    "toolAttribution": [
+      "SecWeb AI Engine (Claude)",
+      "Active HTTP Probe",
+      "Header Analyser"
+    ],
+    "latencyMs": 504,
+    "completionStatus": "Completed — AI-validated findings with CVSS scoring."
+  }
+}
